@@ -1,0 +1,8 @@
+id: subscription-page
+selectors:
+  subscriptionHistoryGrid:
+    css: "#SubscriptionHistoryGrid"
+  customerSearchInput:
+    css: "#CustomerSearchText"
+  customerSearchButton:
+    css: "#CustomerSearchButton"

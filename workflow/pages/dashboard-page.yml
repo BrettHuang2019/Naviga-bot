@@ -1,0 +1,6 @@
+id: dashboard-page
+selectors:
+  mainMenuRoot:
+    css: "#RadTileList1"
+  subscriptionsShortcut:
+    css: "#RadTileList1_mmSubscriptions"

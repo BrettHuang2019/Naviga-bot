@@ -1,0 +1,4 @@
+id: customer-detail-page
+selectors:
+  firstSubscriptionIdLink:
+    css: "#epIndividualSubs_gSubscriptions_ctl00__0 td:first-child a"

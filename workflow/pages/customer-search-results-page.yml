@@ -1,0 +1,6 @@
+id: customer-search-results-page
+selectors:
+  searchResultsGrid:
+    css: "#gResults"
+  firstResultIdLink:
+    css: "#gResults_ctl00__0 td:nth-child(2) a"

@@ -1,0 +1,105 @@
+{
+  "capturedAt": "2026-03-24T16:39:51.631Z",
+  "url": "https://example.com/",
+  "title": "Example Domain",
+  "root": {
+    "type": "element",
+    "tagName": "html",
+    "attributes": {},
+    "children": [
+      {
+        "type": "element",
+        "tagName": "head",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "tagName": "title",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "Example Domain"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "viewport"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "element",
+        "tagName": "body",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "attributes": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Example Domain"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "This domain is for use in documentation examples without needing permission. Avoid use in operations."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "a",
+                    "attributes": {
+                      "href": "https://iana.org/domains/example"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Learn more"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

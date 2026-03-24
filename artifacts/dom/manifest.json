@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "https://example.com/": "example-com-b559c7ed.json",
+    "https://baycandev.navigahub.com/ew/bay/login.aspx": "baycandev-navigahub-com-ew-bay-login-aspx-2fa317d2.json",
+    "https://baycandev.navigahub.com/EW/BAY/default.aspx": "baycandev-navigahub-com-ew-bay-default-aspx-3f9f16ef.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/home/index": "baycandev-navigahub-com-ew-bay-circ-home-index-9cfe9ebf.json",
+    "https://baycandev.navigahub.com/EW/BAY/search/search_customer.aspx?m=redirect&type=CW&r=%2Fcirc%2Fdefault.aspx%3FID%3D&s=82999": "baycandev-navigahub-com-ew-bay-search-search-customer-aspx-5c9fc7af.json",
+    "https://baycandev.navigahub.com/EW/BAY/search/search_customer.aspx?m=redirect&type=CW&r=%2Fcirc%2Fdefault.aspx%3FID%3D&s=829999": "baycandev-navigahub-com-ew-bay-search-search-customer-aspx-08798153.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/default_new.aspx?ID=829999": "baycandev-navigahub-com-ew-bay-circ-default-new-aspx-af85e50c.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/subscription/detail/1989282": "baycandev-navigahub-com-ew-bay-circ-subscription-detail-1989282-7acc9d15.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/batch/edit": "baycandev-navigahub-com-ew-bay-circ-batch-edit-8233b845.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/batch/edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-6acac32a.json",
+    "https://baycandev.navigahub.com/ew/bay/Circ/entry_orders_circ.aspx?BatchID=4621&BatchRenewal=1": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-fcdf196e.json",
+    "https://baycandev.navigahub.com/ew/bay/circ/entry_orders_circ.aspx?BatchID=4621&ID=829999&NewSubInRenewalBatch=1": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-e769bd7c.json",
+    "https://baycandev.navigahub.com/ew/bay/default": "baycandev-navigahub-com-ew-bay-default-16e420ac.json",
+    "https://baycandev.navigahub.com/ew/bay/circ/home/index": "baycandev-navigahub-com-ew-bay-circ-home-index-39dd3899.json"
+  }
+}

@@ -1,0 +1,2452 @@
+{
+  "capturedAt": "2026-03-24T16:42:04.306Z",
+  "url": "https://baycandev.navigahub.com/ew/bay/login.aspx",
+  "title": "Login",
+  "root": {
+    "type": "element",
+    "tagName": "html",
+    "attributes": {
+      "class": "k-webkit k-webkit145 t-chrome t-chrome145"
+    },
+    "children": [
+      {
+        "type": "element",
+        "tagName": "head",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "tagName": "title",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "Login"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {},
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "author"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "copyright"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "distribution"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {},
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "viewport"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/ew/bay/apple-touch-icon-precomposed.png"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/ew/bay/favicon.ico"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/js/jquery-ui/jquery-ui.min.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/css/elan-style.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/css/elan-flex.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/js/browserdetection/browser-detection.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {
+              "type": "text/css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {
+              "type": "text/css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "type": "text/javascript"
+            },
+            "children": [
+              {
+                "type": "text",
+                "text": "var virtualRoot = '/ew/bay'; virtualRoot = virtualRoot.toLowerCase(); var cookiePath = virtualRoot == '' ? '/' : virtualRoot; var confirmChangeLanguageMsg = \"WARNING: You are about to change Languages. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var confirmEnableTrainingMode = \"WARNING: You are about to enable Training Mode. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var confirmDisableTrainingMode = \"WARNING: You are about to disable Training Mode. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var errorHandler = function (msg, srcUrl, line) { var alertmsg = String.format('WARNING: An error has occurred on this page which may prevent it from working properly.{3} Message: {0}{3} Line: {1}{3} URL:{2}', msg, line, document.location.href, '\\n\\n'); alert(alertmsg); var receiveReq = createHttpRequest(); var url = virtualRoot + '/general/ErrorHandlers/javascript_error_handler'; var data = \"ErrorData=\" + msg + \"&SourcePage=\" + srcUrl + \"&Line=\" + line; receiveReq.open(\"POST\", url, true); receiveReq.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\"); receiveReq.send(data); }; window.onerror = false === true ? errorHandler : null;"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "https://www.googletagmanager.com/gtag/js?id=G-HE0EEXLZ7Z"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-HE0EEXLZ7Z');"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/jquery-2.0.3.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/jquery-ui/jquery-ui.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/highcharts.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/highcharts-more.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/modules/no-data-to-display.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/themes/elan_default.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/modules/exporting.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/browserdetection/browser-detection.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/kendo.all.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/json2.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/rgbcolor/rgbcolor.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/elan-base1.5.9.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "resources/js/moment/moment.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "fun/jokes/jokes_en.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "https://use.fontawesome.com/releases/v5.1.0/css/all.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {
+              "type": "text/css"
+            },
+            "children": [
+              {
+                "type": "text",
+                "text": "html { overflow-y: scroll; height: 100%; background-color: #f1f1f1; } .flexbox { display: flex; overflow: hidden; align-items: center; justify-content: center; } .flexbox .col { flex: 1; padding: 5px; text-align: center; height: 100%; } .textBox { height: 50px; width: 100%; padding: 5px 5px 5px 40px; border: 1px solid #ddd; box-sizing: border-box; font-size: 140%; background-position: 10px center; background-size: 20px; background-repeat: no-repeat; background-color: #f9f9f9; } #tUserName { box-sizing: border-box; font-size: 160% !important; padding: 5px 5px 5px 40px; height: 50px; width: 100%; background-position: 10px center; background-size: 20px; background-repeat: no-repeat; background-color: #f9f9f9; background-image: url(resources/images/icon_username.png); } #wResetPassword_C_tUserNameForReset { box-sizing: border-box; font-size: 160% !important; padding: 5px; height: 50px; width: 100%; } #tPassword { box-sizing: border-box; font-size: 160%; padding: 5px 5px 5px 40px; height: 50px; width: 100%; background-position: 10px center; background-size: 20px; background-repeat: no-repeat; background-color: #f9f9f9; margin-top: 10px; background-image: url(resources/images/icon_password.png); } #bLogin { padding: 0 !important; box-sizing: border-box; } input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus { -webkit-padding-start: 8px !important; } #imageArea { background-attachment: fixed; background-position-x: right; background-position-y: bottom; background-repeat: no-repeat; background-size: 85% 100%; background-image: url(resources/images/_login_back_212.jpg); } #newsWrapper div span { background-color: transparent; transition: background-color 0.5s ease; } #newsWrapper:hover div span { background-color: #fff !important; cursor: pointer; } #passwordStrength { padding-left: 0 !important; margin-left: 0 !important; border: 1px solid rgb(229,229,229) !important; } .riStrengthBarL5 { background-color: green !important; color: #fff !important; } .riStrengthBarL4 { background-color: lightgreen !important; color: #000 !important; } .riStrengthBarL3 { background-color: orange !important; color: #000 !important; } .riStrengthBarL0, .riStrengthBarL1, .riStrengthBarL2 { background-color: red !important; color: #fff !important; }"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/Telerik.Web.UI.WebResource.axd?d=PMrIT5dOWaVYIcpFWUE4nINanHEIpD2GkvF1pQ7g7g-8MCGOjI1XGjcwsqtVq-RZe0Lzzx8F4dmUbBkRm6gV84nZrbfqajXP_MqcchwGN8SE40TsUZedtHIOJJ2WLxsQ0&t=638840910637275692&compress=1&_TSM_CombinedScripts_=%3b%3bTelerik.Web.UI%2c+Version%3d2022.2.622.45%2c+Culture%3dneutral%2c+PublicKeyToken%3d121fae78165ba3d4%3aen-US%3a632d5171-8657-40d1-a04f-15afaaf31752%3a45085116%3aaac1aeb7%3afe53831e%3ad7e35272%3af2eff81c%3af7f0672f%3a92753c09%3bTelerik.Web.UI.Skins%2c+Version%3d2022.2.622.45%2c+Culture%3dneutral%2c+PublicKeyToken%3d121fae78165ba3d4%3aen-US%3a207a89a9-8b19-4222-9e32-091f0d87f193%3a929e740d%3aa19c4d24%3af7a27b73%3abf721433",
+              "type": "text/css"
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "element",
+        "tagName": "body",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "tagName": "form",
+            "attributes": {
+              "id": "form1"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {
+                  "class": "aspNetHidden"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "Meta1_stylesheetManager_TSSM",
+                      "id": "Meta1_stylesheetManager_TSSM",
+                      "value": ";Telerik.Web.UI, Version=2022.2.622.45, Culture=neutral, PublicKeyToken=121fae78165ba3d4:en-US:632d5171-8657-40d1-a04f-15afaaf31752:45085116:aac1aeb7:fe53831e:d7e35272:f2eff81c:f7f0672f:92753c09;Telerik.Web.UI.Skins, Version=2022.2.622.45, Culture=neutral, PublicKeyToken=121fae78165ba3d4:en-US:207a89a9-8b19-4222-9e32-091f0d87f193:929e740d:a19c4d24:f7a27b73:bf721433"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "RadScriptManager1_TSM",
+                      "id": "RadScriptManager1_TSM",
+                      "value": ";;System.Web.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35:en-US:a8328cc8-0a99-4e41-8fe3-b58afac64e45:ea597d4b:b25378d2;Telerik.Web.UI, Version=2022.2.622.45, Culture=neutral, PublicKeyToken=121fae78165ba3d4:en-US:632d5171-8657-40d1-a04f-15afaaf31752:16e4e7cd:ed16cbdc:365331c3:88144a7a:33715776:b7778d6c:24ee1bba:6d43f6d9:ddbfcb67:c128760b:874f8ea2:b2e06756:92fe8ea0:f46195d3:4877f69a:fa31b949:19620875:490a9d4e:bd8f85e4:82923ac3"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "__EVENTTARGET",
+                      "id": "__EVENTTARGET",
+                      "value": ""
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "__EVENTARGUMENT",
+                      "id": "__EVENTARGUMENT",
+                      "value": ""
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "__VSKEY",
+                      "id": "__VSKEY",
+                      "value": "VIEWSTATE_m0fotxeso5x5ypglvkntpylo_/ew/bay/login.aspx_639099673153596190"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "type": "hidden",
+                      "name": "__VIEWSTATE",
+                      "id": "__VIEWSTATE",
+                      "value": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "//<![CDATA[ var theForm = document.forms['form1']; function __doPostBack(eventTarget, eventArgument) { if (!theForm.onsubmit || (theForm.onsubmit() != false)) { theForm.__EVENTTARGET.value = eventTarget; theForm.__EVENTARGUMENT.value = eventArgument; theForm.submit(); } } //]]>"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "src": "/EW/BAY/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZLQqqNAOZ3_dZS8WseqyutS547P4vkLSaIglAwC8pNrFXmL3IWAtjVFvXTNowQyIyw2&t=638901392248157332",
+                  "type": "text/javascript"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "//<![CDATA[ localStorage.setItem('lastPageLoad', +new Date(new Date().setDate(new Date().getDate()-1)) );//]]>"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "src": "/EW/BAY/Telerik.Web.UI.WebResource.axd?_TSM_HiddenField_=RadScriptManager1_TSM&compress=1&_TSM_CombinedScripts_=%3b%3bSystem.Web.Extensions%2c+Version%3d4.0.0.0%2c+Culture%3dneutral%2c+PublicKeyToken%3d31bf3856ad364e35%3aen-US%3aa8328cc8-0a99-4e41-8fe3-b58afac64e45%3aea597d4b%3ab25378d2%3bTelerik.Web.UI%2c+Version%3d2022.2.622.45%2c+Culture%3dneutral%2c+PublicKeyToken%3d121fae78165ba3d4%3aen-US%3a632d5171-8657-40d1-a04f-15afaaf31752%3a16e4e7cd%3aed16cbdc%3a365331c3%3a88144a7a%3a33715776%3ab7778d6c%3a24ee1bba%3a6d43f6d9%3addbfcb67%3ac128760b%3a874f8ea2%3ab2e06756%3a92fe8ea0%3af46195d3%3a4877f69a%3afa31b949%3a19620875%3a490a9d4e%3abd8f85e4%3a82923ac3",
+                  "type": "text/javascript"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "//<![CDATA[ if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.'); //]]>"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "//<![CDATA[ Sys.WebForms.PageRequestManager._initialize('RadScriptManager1', 'form1', ['tbLoginPanel','','twAuthorize$C$bAuthorizePanel','','twResetPassword$C$bResetPasswordPanel','','twReset$C$bSetPasswordPanel','','tRadAjaxManager1SU','RadAjaxManager1SU'], ['bLogin','','bAutoLogin','bAutoLogin','wAuthorize$C$bAuthorize','','wResetPassword$C$bResetPassword','','wReset$C$bSetPassword',''], [], 90, ''); //]]>"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "$(function () { var dateCheck = new Date(); /* hour is before noon */ if (dateCheck.getHours() < 12) { $get('lWelcome').innerHTML = 'Good Morning'; } else if (dateCheck.getHours() >= 12 && dateCheck.getHours() <= 17) { $get('lWelcome').innerHTML = 'Good Afternoon'; } else if (dateCheck.getHours() > 17 && dateCheck.getHours() <= 24) { $get('lWelcome').innerHTML = 'Good Evening'; } $(document).keypress(function (e) { if (e.which == \"13\") { getLoginDetails(); $find('bLogin').click(); } }); }); function redirectToLogin() { location.href = 'login'; } function redirectAuth() { var url = decodeURIComponent(getQueryString('ReturnUrl', 'default')); location.href = url; } var newsFeed; var releaseInfo; var retrievingData = false; var loadingPanel; var maxRecords = 10; var lastRecordId; var newsData; var newsLoading; var releaseLoading; var toggleSpeed = 0; $(window).bind(\"load\", function () { goTotop(); if (this != top) { top.location.reload(true); } newsFeed = $find('lNewsFeed'); releaseInfo = $find('lReleaseInfo'); newsLoading = $('#newsLoading'); releaseLoading = $('#releaseLoading'); getNews(true); getReleaseInfo(); randomJoke(); $('#jokeSetup').click(function () { $('#jokeType').toggle(); }); $('#jokeTag').click(function () { randomJoke(); }); }); function getReleaseInfo() { var releaseYear = $get('hMyRelease').value.split('.')[0]; var releaseNo = $get('hMyRelease').value.split('.')[1]; var d = $get('hMyLastPatchDate').value; d = parseInt(d); var lastPatchDate = new Date(parseInt($get('hMyLastPatchDate').value)); var daysSinceLastPatch = $get('hDaysSinceLastPatch').value; var url = $get('hMothershipPath').value + 'api/releasedata/' + releaseYear + '/' + releaseNo; //releaseLoading.slideToggle(toggleSpeed); $.ajax({ type: \"GET\", crossDomain: true, dataType: 'json', async: true, cache: false, contentType: \"application/json\", url: url, success: function (data) { var releaseData = { items: [] }; var icon, title, color, message; if (data.releasesBehind < 0) { title = 'Cutting Edge'; message = 'You are on a pre-release or development version'; icon = 'fa-user-astronaut'; color = '#000'; } else if (data.releasesBehind == 0) { title = 'Latest Version'; message = 'You are on the latest major version'; icon = 'fa-star'; color = '#000'; } else if (data.releasesBehind == 1) { title = 'Newer Version Available'; message = 'There is a newer version available'; icon = 'fa-sync'; color = '#000'; } else if (data.releasesBehind == 2) { title = 'You are Falling Behind'; message = 'You are now 2 full major releases behind'; icon = 'fa-exclamation-circle'; color = '#000'; } else { title = 'You are Behind'; message = 'You are ' + data.releasesBehind + ' major version(s) behind. Yikes!'; icon = 'fa-thumbs-down'; color = '#000'; } releaseData.items.push({ \"icon\": icon, \"title\": title, \"message\": message, \"color\": color }); //var myPatchDate = moment(lastPatchDate); //var currentPatchDate = moment(data.currentPatchDate); //.format('LL'); //var daysOutOfPatch = myPatchDate.diff(currentPatchDate, 'days'); //if (data.currentPatchDate == null) //{ // daysOutOfPatch = 0; //} //currentPatchDate = moment(data.currentPatchDate).format('LL'); if (daysSinceLastPatch < 2) { title = 'All Patches Loaded'; message = 'This system was last patched ' + (daysSinceLastPatch == 0 ? 'today' : 'yesterday') + '. Sweet.'; icon = 'fa-medal'; color = '#000'; } else if (daysSinceLastPatch < 8) { title = 'Patched within the Last Week'; message = 'This system was last patched ' + daysSinceLastPatch + ' days ago, on ' + moment(lastPatchDate).format('LL'); icon = 'fa-clock'; color = '#000'; } else if (daysSinceLastPatch < 30) { title = 'Patch ASAP'; message = 'This system was last patched ' + daysSinceLastPatch + ' days ago, on ' + moment(lastPatchDate).format('LL'); icon = 'fa-user-md'; color = '#000'; } else { title = 'PATCH ASAP'; message = 'This system was last patched ' + daysSinceLastPatch + ' days ago, on ' + moment(lastPatchDate).format('LL'); icon = 'fa-hospital'; color = '#000'; } releaseData.items.push({ \"icon\": icon, \"title\": title, \"message\": message, \"color\": color }); var testAccount = $get('hTestAccount').value; var testAccountCopyOf = $get('hTestAccountCopyOf').value; var testAccountCopyFrom = $get('hTestAccountCopyFrom').value; if (data.releasesBehind < 0) { title = 'DEVELOPER Account'; message = 'This is a pre-release or development account'; icon = 'fa-bug'; color = '#000'; } else if (testAccount == 'Y') { title = 'TEST Account'; message = 'This is a TEST account copy of ' + testAccountCopyOf; icon = 'fa-vial'; color = '#000'; } else { title = 'LIVE Account'; message = 'This is a LIVE account - Measure twice, cut once'; icon = 'fa-heartbeat'; color = '#000'; } releaseData.items.push({ \"icon\": icon, \"title\": title, \"message\": message, \"color\": color }); releaseLoading.slideToggle(toggleSpeed); releaseInfo.set_dataSource(releaseData.items); releaseInfo.dataBind(); }, error: function (xhr, status, error) { //alert(error); //var err = eval(\"(\" + xhr.responseText + \")\"); //alert(err.Message); } }); } function goTotop() { document.body.scrollTop = document.documentElement.scrollTop = 0; } function getLoginDetails(sender, args) { var now = new Date(); var now_utc = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T'; now_utc += pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()) + getOffset(); $get('hDateTime').value = now_utc; BrowserDetection.init(); $get('hBrowser').value = BrowserDetection.browser; $get('hBrowserVersion').value = BrowserDetection.browserVersion; $get('hOS').value = session.os + ' ' + session.osVersion; } function getOffset() { var date = new Date(); var sign = (date.getTimezoneOffset() > 0) ? \"-\" : \"+\"; var offset = Math.abs(date.getTimezoneOffset()); var hours = pad(Math.floor(offset / 60)); var minutes = pad(offset % 60); return sign + hours + \":\" + minutes; } function pad(value) { return value < 10 ? '0' + value : value; } function checkSession() { if (localStorage.getItem('lastPageLoad') != null) { var sessionExpires = new Date(parseInt(localStorage.getItem('lastPageLoad'))); var now = new Date(); if (sessionExpires > now) { clearInterval(checkForActiveSession); getLoginDetails(); var ajaxManager = $find('RadAjaxManager1'); ajaxManager.ajaxRequestWithTarget('bAutoLogin', ''); } } } function setRememberMe(el) { var chkRememberMe = $get('chkRememberMe'); chkRememberMe.checked = !chkRememberMe.checked; } function resetPassword() { $find('wResetPassword_C_tUserNameForReset').set_value($find('tUserName').get_value()); $find('wResetPassword').show(); } function closePasswordReset() { $find('wResetPassword').close(); } function getNews(getNewData) { if (retrievingData == false) { retrievingData = true; //newsLoading.slideToggle(toggleSpeed); if (getNewData) { lastRecordId = ''; } else { } var release = $get('hMyRelease').value; var clientTla = $get('hClientTla').value; var moduleIds = $get('hModuleIDs').value; var url = $get('hMothershipPath').value + 'api/newsfeed/v2/?release=' + release + '&clientTla=' + clientTla + '&moduleIds=' + moduleIds; var appendData = lastRecordId != ''; $.ajax({ type: \"GET\", crossDomain: true, dataType: 'json', async: true, cache: false, contentType: \"application/json\", url: url, success: appendData ? addData : bindData, error: function (xhr, status, error) { //alert(error); //var err = eval(\"(\" + xhr.responseText + \")\"); //alert(err.Message); } }); } } function bindData(d) { newsData = d; if (newsData.length > 0) { lastRecordId = newsData[newsData.length - 1].id; } else { lastRecordId = ''; } newsLoading.slideToggle(toggleSpeed); newsFeed.set_dataSource(newsData); newsFeed.dataBind(); retrievingData = false; } function addData(d) { if (d.length > 0) { newsLoading.slideToggle(toggleSpeed); lastRecordId = d[d.length - 1].id; d = buildDisplay(d); for (var i = 0; i < d.length; i++) { newsData.push(d[i]); } newsFeed.appendData(d); } retrievingData = false; } function clickManager(url) { if (url != '') { window.open(url, '_blank'); } } function showReset(Sender, args) { $find('wReset').show(); } function checkPassword(sender, args) { var pw = $find('wReset_C_tNewPassword'); var pw2 = $find('wReset_C_tNewPassword2'); if (score >= 5) { //good } else { radalert( 'Sorry, your new password is not secure enough', null, null, 'Error', null); args.set_cancel(true); } } var score = 1; function validatePw(sender, args) { score = 1; if (args.get_passwordText().length >= $get('hPasswordLength').value) { score += 1; } if (args.get_passwordText().match(/(?=.*\\d)/)) { score += 1; } if (args.get_passwordText().match(/(?=.*[a-z])/)) { score += 1; } if (args.get_passwordText().match(/(?=.*[A-Z])/)) { score += 1; } var msg = ''; if (score >= 5) { msg = \"Perfect. This will work.\"; } else if (score == 4) { msg = \"Almost good enough ...\"; } else if (score == 3) { msg = \"Nope, this won\\\\\\ït work.\"; } else if (score <= 2) { msg = \"Not good enough.\"; } args.set_indicatorText(msg); args.set_strengthScore(score * 20); $(\"#hPasswordStrength\").val(score * 20); // Code Behind expects a score of 100 or more } var jokeTimeout; var lastJokes = []; function randomJoke() { clearTimeout(jokeTimeout); $('#jokePunchline').hide(); //$.ajax({ // url: 'fun/jokes/jokes_en.json', // type: 'GET', // dataType: 'json', // success: function (jokes) // { var jokes = jokes_en; var random_index = Math.floor(Math.random() * jokes.length); var random_joke = jokes[random_index]; var runawayBreaker = 0; while (lastJokes.indexOf(random_joke.id) != -1) { if (runawayBreaker > 100) break; random_index = Math.floor(Math.random() * jokes.length); random_joke = jokes[random_index]; runawayBreaker++; } if (lastJokes.length == 10) lastJokes.shift(); lastJokes.push(random_joke.id); $('#jokeType').html('[from <u>' + random_joke.type + '</u> humor]'); $('#jokeSetup').html(random_joke.setup); jokeTimeout = setTimeout(function () { $('#jokePunchline').html(random_joke.punchline); $('#jokePunchline').show('slow'); }, 3000); // }, // error: function (xhr) // { // console.log(xhr); // $('#divJoke').hide(); // }, //}); } function deliquentAccountWarning(message) { radalert(message, 500, null, 'Account Warning', redirectMe, null); } function redirectMe() { location.href = 'default'; }"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {
+                  "id": "RadAjaxManager1SU"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "attributes": {
+                      "id": "RadAjaxManager1"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {
+                  "id": "RadAjaxLoadingPanel4",
+                  "class": "RadAjax RadAjax_Metro"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "class": "raDiv"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "class": "raColor raTransp"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hDateTime",
+                  "id": "hDateTime"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hBrowser",
+                  "id": "hBrowser"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hBrowserVersion",
+                  "id": "hBrowserVersion"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hOS",
+                  "id": "hOS"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hMyRelease",
+                  "id": "hMyRelease",
+                  "value": "2023.1"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hMyLastPatchDate",
+                  "id": "hMyLastPatchDate",
+                  "value": "61343550000000"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hDaysSinceLastPatch",
+                  "id": "hDaysSinceLastPatch",
+                  "value": "730531"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hTestAccount",
+                  "id": "hTestAccount",
+                  "value": "Y"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hTestAccountCopyOf",
+                  "id": "hTestAccountCopyOf",
+                  "value": "BAY"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hTestAccountCopyFrom",
+                  "id": "hTestAccountCopyFrom",
+                  "value": "BAYCANPROD01"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hMothershipPath",
+                  "id": "hMothershipPath",
+                  "value": "https://idev.navigahub.com/mothership/"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hClientTla",
+                  "id": "hClientTla",
+                  "value": "BAY"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hModuleIDs",
+                  "id": "hModuleIDs",
+                  "value": "AD;CW;BW;SP;AR;AP;GL"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hPasswordStrength",
+                  "id": "hPasswordStrength",
+                  "value": "20"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "hidden",
+                  "name": "hPasswordLength",
+                  "id": "hPasswordLength",
+                  "value": "8"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {
+                  "class": "flexbox"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "class": "col"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "flexbox"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": []
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "id": "lWelcome"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Good Afternoon"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "br",
+                                    "attributes": {},
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Please Login:"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "colorHeader"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {
+                                  "class": "flexbox"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "class": "col"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "img",
+                                        "attributes": {
+                                          "src": "resources/images/naviga_white.png",
+                                          "id": "iLogo",
+                                          "alt": "Naviga"
+                                        },
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "class": "col"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "You are logged into"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "br",
+                                        "attributes": {},
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "BAY Can Dev"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "br",
+                                        "attributes": {},
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "2023.1 Build 260206.0239"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "id": "divTestAccountParent"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {
+                                  "id": "divTestAccount"
+                                },
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "text": "This is a TEST account"
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "id": "sCopiedFrom"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "- Copied from BAY"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "span",
+                                "attributes": {
+                                  "id": "tUserName_wrapper",
+                                  "class": "riSingle RadInput RadInput_Metro"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "tUserName",
+                                      "name": "tUserName",
+                                      "class": "riTextBox riEmpty defaultTextbox",
+                                      "value": "Enter Your User Name",
+                                      "type": "text"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "tUserName_ClientState",
+                                      "name": "tUserName_ClientState",
+                                      "type": "hidden",
+                                      "value": "{\"enabled\":true,\"emptyMessage\":\"Enter Your User Name\",\"validationText\":\"\",\"valueAsString\":\"\",\"lastSetTextBoxValue\":\"Enter Your User Name\"}"
+                                    },
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "span",
+                                "attributes": {
+                                  "id": "tPassword_wrapper",
+                                  "class": "riSingle RadInput RadInput_Metro"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "tPassword",
+                                      "name": "tPassword",
+                                      "class": "riTextBox riEmpty defaultTextbox",
+                                      "type": "password"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "tPassword_ClientState",
+                                      "name": "tPassword_ClientState",
+                                      "type": "hidden",
+                                      "value": "{\"enabled\":true,\"emptyMessage\":\"Enter Your Password\",\"validationText\":\"\",\"valueAsString\":\"\",\"lastSetTextBoxValue\":\"\"}"
+                                    },
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {
+                                  "id": "divRememberMe",
+                                  "class": "flexbox"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "name": "chkRememberMe",
+                                      "type": "checkbox",
+                                      "id": "chkRememberMe"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "text",
+                                    "text": "Remember My Username"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {
+                                  "class": "RadAjaxPanel",
+                                  "id": "bLoginPanel"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "id": "bLogin",
+                                      "class": "RadButton RadButton_Metro rbVerticalButton loginButton"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "input",
+                                        "attributes": {
+                                          "class": "rbDecorated",
+                                          "type": "submit",
+                                          "name": "bLogin",
+                                          "id": "bLogin_input",
+                                          "value": "Login"
+                                        },
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "input",
+                                        "attributes": {
+                                          "id": "bLogin_ClientState",
+                                          "name": "bLogin_ClientState",
+                                          "type": "hidden",
+                                          "value": "{\"text\":\"Login\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false,\"primary\":false,\"enabled\":true}"
+                                        },
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {
+                                  "id": "divResetPassword"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "a",
+                                    "attributes": {
+                                      "href": "javascript:resetPassword();"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Forgot my password"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "br",
+                            "attributes": {},
+                            "children": []
+                          },
+                          {
+                            "type": "text",
+                            "text": "© 2026 NAVIGA. All Rights Reserved."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "imageArea",
+                      "class": "col"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "flexbox"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "id": "divNewsContainer"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "newsLoading"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "img",
+                                        "attributes": {
+                                          "src": "resources/images/loading_24.gif",
+                                          "alt": "<#= Utilities.getTranslation(\"\", \"LoadingDot\", \"globalRes\") #>"
+                                        },
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "br",
+                                        "attributes": {},
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "text",
+                                        "text": "grabbing the latest news ..."
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "lNewsFeed_ClientState",
+                                      "name": "lNewsFeed_ClientState",
+                                      "type": "hidden"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "id": "lNewsFeed"
+                                    },
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "id": "divJoke"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "jokeTag",
+                                      "class": "darkBackground",
+                                      "title": "Click here for a new joke"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Random Humor"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "jokeSetup"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "jokePunchline"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "jokeType"
+                                    },
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "id": "releaseLoading"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "img",
+                                        "attributes": {
+                                          "src": "resources/images/loading_24.gif"
+                                        },
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "br",
+                                        "attributes": {},
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "text",
+                                        "text": "checking your release ..."
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "input",
+                                    "attributes": {
+                                      "id": "lReleaseInfo_ClientState",
+                                      "name": "lReleaseInfo_ClientState",
+                                      "type": "hidden"
+                                    },
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "id": "lReleaseInfo"
+                                    },
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Naviga™ Version 2023.1 Build 260206.0239"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "/** * JavaScript Client Detection * (C) viazenetti GmbH (Christian Ludwig) */ (function (window) { { var unknown = '-'; // screen var screenSize = ''; if (screen.width) { width = (screen.width) ? screen.width : ''; height = (screen.height) ? screen.height : ''; screenSize += '' + width + \" x \" + height; } //browser var nVer = navigator.appVersion; var nAgt = navigator.userAgent; var browser = navigator.appName; var version = '' + parseFloat(navigator.appVersion); // mobile version var mobile = /Mobile|mini|Fennec|Android|iP(ad|od|hone)/.test(nVer); // system var os = unknown; var clientStrings = [ { s: 'Windows 10', r: /(Windows 10.0|Windows NT 10.0)/ }, { s: 'Windows 8.1', r: /(Windows 8.1|Windows NT 6.3)/ }, { s: 'Windows 8', r: /(Windows 8|Windows NT 6.2)/ }, { s: 'Windows 7', r: /(Windows 7|Windows NT 6.1)/ }, { s: 'Windows Vista', r: /Windows NT 6.0/ }, { s: 'Windows Server 2003', r: /Windows NT 5.2/ }, { s: 'Windows XP', r: /(Windows NT 5.1|Windows XP)/ }, { s: 'Windows 2000', r: /(Windows NT 5.0|Windows 2000)/ }, { s: 'Windows ME', r: /(Win 9x 4.90|Windows ME)/ }, { s: 'Windows 98', r: /(Windows 98|Win98)/ }, { s: 'Windows 95', r: /(Windows 95|Win95|Windows_95)/ }, { s: 'Windows NT 4.0', r: /(Windows NT 4.0|WinNT4.0|WinNT|Windows NT)/ }, { s: 'Windows CE', r: /Windows CE/ }, { s: 'Windows 3.11', r: /Win16/ }, { s: 'Android', r: /Android/ }, { s: 'Open BSD', r: /OpenBSD/ }, { s: 'Sun OS', r: /SunOS/ }, { s: 'Linux', r: /(Linux|X11)/ }, { s: 'iOS', r: /(iPhone|iPad|iPod)/ }, { s: 'Mac OS X', r: /Mac OS X/ }, { s: 'Mac OS', r: /(MacPPC|MacIntel|Mac_PowerPC|Macintosh)/ }, { s: 'QNX', r: /QNX/ }, { s: 'UNIX', r: /UNIX/ }, { s: 'BeOS', r: /BeOS/ }, { s: 'OS/2', r: /OS\\/2/ }, { s: 'Search Bot', r: /(nuhk|Googlebot|Yammybot|Openbot|Slurp|MSNBot|Ask Jeeves\\/Teoma|ia_archiver)/ } ]; for (var id in clientStrings) { var cs = clientStrings[id]; if (cs.r.test(nAgt)) { os = cs.s; break; } } var osVersion = unknown; if (/Windows/.test(os)) { osVersion = /Windows (.*)/.exec(os)[1]; os = 'Windows'; } switch (os) { case 'Mac OS X': try { osVersion = /Mac OS X (10[\\.\\_\\d]+)/.exec(nAgt)[1]; } catch { osVersion = /Mac OS X (11[\\.\\_\\d]+)/.exec(nAgt)[1]; } break; case 'Android': osVersion = /Android ([\\.\\_\\d]+)/.exec(nAgt)[1]; break; case 'iOS': osVersion = /OS (\\d+)_(\\d+)_?(\\d+)?/.exec(nVer); osVersion = osVersion[1] + '.' + osVersion[2] + '.' + (osVersion[3] | 0); break; } } window.session = { screen: screenSize, mobile: mobile, os: os, osVersion: osVersion, }; }(this));"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "input",
+                "attributes": {
+                  "type": "button",
+                  "name": "bAutoLogin",
+                  "value": "",
+                  "id": "bAutoLogin"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "attributes": {
+                  "id": "RadWindowManager1"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "wAuthorize"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "id": "wAuthorize_C"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "table",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "tbody",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "tr",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "td",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "text",
+                                            "text": "It appears you are logging in from a new location. As an extra precaution, we have emailed an Token to your email address on file."
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "span",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "text",
+                                                "text": "Please enter the"
+                                              },
+                                              {
+                                                "type": "element",
+                                                "tagName": "u",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "Token"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "text",
+                                                "text": "we just emailed you to authorize access from this location"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "tr",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "td",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "span",
+                                            "attributes": {
+                                              "id": "wAuthorize_C_tToken_wrapper",
+                                              "class": "riSingle RadInput RadInput_Metro"
+                                            },
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "input",
+                                                "attributes": {
+                                                  "id": "wAuthorize_C_tToken",
+                                                  "name": "wAuthorize$C$tToken",
+                                                  "type": "text",
+                                                  "class": "riTextBox riEnabled defaultTextbox",
+                                                  "value": "____-____"
+                                                },
+                                                "children": []
+                                              },
+                                              {
+                                                "type": "element",
+                                                "tagName": "input",
+                                                "attributes": {
+                                                  "id": "wAuthorize_C_tToken_ClientState",
+                                                  "name": "wAuthorize_C_tToken_ClientState",
+                                                  "type": "hidden",
+                                                  "value": "{\"enabled\":true,\"emptyMessage\":\"\",\"validationText\":\"\",\"valueAsString\":\"____-____\",\"valueWithPromptAndLiterals\":\"____-____\",\"lastSetTextBoxValue\":\"____-____\"}"
+                                                },
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "tr",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "td",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "div",
+                                            "attributes": {
+                                              "class": "RadAjaxPanel",
+                                              "id": "wAuthorize_C_bAuthorizePanel"
+                                            },
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "id": "wAuthorize_C_bAuthorize",
+                                                  "class": "RadButton RadButton_Metro rbVerticalButton"
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "class": "rbDecorated",
+                                                      "type": "submit",
+                                                      "name": "wAuthorize$C$bAuthorize",
+                                                      "id": "wAuthorize_C_bAuthorize_input",
+                                                      "value": "Authorize / Login"
+                                                    },
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "id": "wAuthorize_C_bAuthorize_ClientState",
+                                                      "name": "wAuthorize_C_bAuthorize_ClientState",
+                                                      "type": "hidden",
+                                                      "value": "{\"text\":\"Authorize / Login\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false,\"primary\":false,\"enabled\":true}"
+                                                    },
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "input",
+                        "attributes": {
+                          "id": "wAuthorize_ClientState",
+                          "name": "wAuthorize_ClientState",
+                          "type": "hidden"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "wResetPassword"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "id": "wResetPassword_C"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "table",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "tbody",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "tr",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "td",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "span",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "text",
+                                                "text": "Request a password reset for username :"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "span",
+                                            "attributes": {
+                                              "id": "wResetPassword_C_tUserNameForReset_wrapper",
+                                              "class": "riSingle RadInput RadInput_Metro"
+                                            },
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "input",
+                                                "attributes": {
+                                                  "id": "wResetPassword_C_tUserNameForReset",
+                                                  "name": "wResetPassword$C$tUserNameForReset",
+                                                  "class": "riTextBox riEmpty defaultTextbox",
+                                                  "value": "Enter your username",
+                                                  "type": "text"
+                                                },
+                                                "children": []
+                                              },
+                                              {
+                                                "type": "element",
+                                                "tagName": "input",
+                                                "attributes": {
+                                                  "id": "wResetPassword_C_tUserNameForReset_ClientState",
+                                                  "name": "wResetPassword_C_tUserNameForReset_ClientState",
+                                                  "type": "hidden",
+                                                  "value": "{\"enabled\":true,\"emptyMessage\":\"Enter your username\",\"validationText\":\"\",\"valueAsString\":\"\",\"lastSetTextBoxValue\":\"Enter your username\"}"
+                                                },
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "br",
+                                            "attributes": {},
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "element",
+                                    "tagName": "tr",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "td",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "div",
+                                            "attributes": {
+                                              "class": "RadAjaxPanel",
+                                              "id": "wResetPassword_C_bResetPasswordPanel"
+                                            },
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "id": "wResetPassword_C_bResetPassword",
+                                                  "class": "RadButton RadButton_Metro rbVerticalButton"
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "class": "rbDecorated",
+                                                      "type": "submit",
+                                                      "name": "wResetPassword$C$bResetPassword",
+                                                      "id": "wResetPassword_C_bResetPassword_input",
+                                                      "value": "Request Password Reset"
+                                                    },
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "id": "wResetPassword_C_bResetPassword_ClientState",
+                                                      "name": "wResetPassword_C_bResetPassword_ClientState",
+                                                      "type": "hidden",
+                                                      "value": "{\"text\":\"Request Password Reset\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false,\"primary\":false,\"enabled\":true}"
+                                                    },
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "input",
+                        "attributes": {
+                          "id": "wResetPassword_ClientState",
+                          "name": "wResetPassword_ClientState",
+                          "type": "hidden"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "wReset"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "id": "wReset_C"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "id": "wReset_C_divUser"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "table",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "tbody",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "tr",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "img",
+                                                "attributes": {
+                                                  "src": "resources/images/icon_help_48.png",
+                                                  "alt": ""
+                                                },
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "b",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "Please set a New Password"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "element",
+                                                "tagName": "br",
+                                                "attributes": {},
+                                                "children": []
+                                              },
+                                              {
+                                                "type": "text",
+                                                "text": "Your New Password:"
+                                              },
+                                              {
+                                                "type": "element",
+                                                "tagName": "ul",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "li",
+                                                    "attributes": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "must contain at least one number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "li",
+                                                    "attributes": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "must contain at least one lower case letter"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "li",
+                                                    "attributes": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "must contain at least one upper case letter"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "li",
+                                                    "attributes": {},
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "must be 8 characters long"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "table",
+                                "attributes": {
+                                  "class": "defaultSummary"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "tbody",
+                                    "attributes": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "tr",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "b",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "New Password"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "id": "wReset_C_tNewPassword_wrapper",
+                                                  "class": "riSingle RadInput RadInput_Metro"
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "span",
+                                                    "attributes": {
+                                                      "class": "riContentWrapper"
+                                                    },
+                                                    "children": [
+                                                      {
+                                                        "type": "element",
+                                                        "tagName": "input",
+                                                        "attributes": {
+                                                          "id": "wReset_C_tNewPassword",
+                                                          "name": "wReset$C$tNewPassword",
+                                                          "class": "riTextBox riEnabled defaultTextbox",
+                                                          "type": "password"
+                                                        },
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "id": "wReset_C_tNewPassword_ClientState",
+                                                      "name": "wReset_C_tNewPassword_ClientState",
+                                                      "type": "hidden",
+                                                      "value": "{\"enabled\":true,\"emptyMessage\":\"\",\"validationText\":\"\",\"valueAsString\":\"\",\"lastSetTextBoxValue\":\"\"}"
+                                                    },
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "tr",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "b",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "New Password Strength"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "div",
+                                                "attributes": {
+                                                  "id": "passwordStrength",
+                                                  "class": "riStrengthBar riStrengthBarL1"
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "Not good enough."
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "element",
+                                        "tagName": "tr",
+                                        "attributes": {},
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "b",
+                                                "attributes": {},
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "Retype New Password"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "td",
+                                            "attributes": {},
+                                            "children": [
+                                              {
+                                                "type": "element",
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "id": "wReset_C_tNewPassword2_wrapper",
+                                                  "class": "riSingle RadInput RadInput_Metro"
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "id": "wReset_C_tNewPassword2",
+                                                      "name": "wReset$C$tNewPassword2",
+                                                      "class": "riTextBox riEnabled defaultTextbox",
+                                                      "type": "password"
+                                                    },
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "type": "element",
+                                                    "tagName": "input",
+                                                    "attributes": {
+                                                      "id": "wReset_C_tNewPassword2_ClientState",
+                                                      "name": "wReset_C_tNewPassword2_ClientState",
+                                                      "type": "hidden",
+                                                      "value": "{\"enabled\":true,\"emptyMessage\":\"\",\"validationText\":\"\",\"valueAsString\":\"\",\"lastSetTextBoxValue\":\"\"}"
+                                                    },
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "div",
+                                "attributes": {},
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "class": "RadAjaxPanel",
+                                      "id": "wReset_C_bSetPasswordPanel"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "id": "wReset_C_bSetPassword",
+                                          "class": "RadButton RadButton_Metro rbSkinnedButton"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "element",
+                                            "tagName": "input",
+                                            "attributes": {
+                                              "class": "rbDecorated",
+                                              "type": "submit",
+                                              "name": "wReset$C$bSetPassword",
+                                              "id": "wReset_C_bSetPassword_input",
+                                              "value": "Save"
+                                            },
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "element",
+                                            "tagName": "input",
+                                            "attributes": {
+                                              "id": "wReset_C_bSetPassword_ClientState",
+                                              "name": "wReset_C_bSetPassword_ClientState",
+                                              "type": "hidden",
+                                              "value": "{\"text\":\"Save\",\"value\":\"\",\"checked\":false,\"target\":\"\",\"navigateUrl\":\"\",\"commandName\":\"\",\"commandArgument\":\"\",\"autoPostBack\":true,\"selectedToggleStateIndex\":0,\"validationGroup\":null,\"readOnly\":false,\"primary\":false,\"enabled\":true}"
+                                            },
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "input",
+                        "attributes": {
+                          "id": "wReset_ClientState",
+                          "name": "wReset_ClientState",
+                          "type": "hidden"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "RadWindowManager1_alerttemplate"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "rwDialogPopup radalert"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "rwDialogText"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "{1}"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "a",
+                                "attributes": {
+                                  "class": "rwPopupButton",
+                                  "href": "javascript:void(0);"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "class": "rwOuterSpan"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "class": "rwInnerSpan"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "##LOC[OK]##"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "RadWindowManager1_prompttemplate"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "rwDialogPopup radprompt"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "rwDialogText"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "{1}"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "script",
+                                "attributes": {
+                                  "type": "text/javascript"
+                                },
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "text": "function RadWindowprompt_detectenter(id, ev, input) { if (!ev) ev = window.event; if (ev.keyCode == 13) { var but = input.parentNode.parentNode.getElementsByTagName(\"A\")[0]; if (but) { if (but.click) but.click(); else if (but.onclick) { but.focus(); var click = but.onclick; but.onclick = null; if (click) click.call(but); } } return false; } else return true; }"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "input",
+                                "attributes": {
+                                  "title": "Enter Value",
+                                  "type": "text",
+                                  "class": "rwDialogInput",
+                                  "value": "{2}"
+                                },
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "a",
+                                "attributes": {
+                                  "class": "rwPopupButton",
+                                  "href": "javascript:void(0);"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "class": "rwOuterSpan"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "class": "rwInnerSpan"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "##LOC[OK]##"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "a",
+                                "attributes": {
+                                  "class": "rwPopupButton",
+                                  "href": "javascript:void(0);"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "class": "rwOuterSpan"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "class": "rwInnerSpan"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "##LOC[Cancel]##"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "attributes": {
+                      "id": "RadWindowManager1_confirmtemplate"
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "rwDialogPopup radconfirm"
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "rwDialogText"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "{1}"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "div",
+                            "attributes": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "tagName": "a",
+                                "attributes": {
+                                  "class": "rwPopupButton",
+                                  "href": "javascript:void(0);"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "class": "rwOuterSpan"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "class": "rwInnerSpan"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "##LOC[OK]##"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "element",
+                                "tagName": "a",
+                                "attributes": {
+                                  "class": "rwPopupButton",
+                                  "href": "javascript:void(0);"
+                                },
+                                "children": [
+                                  {
+                                    "type": "element",
+                                    "tagName": "span",
+                                    "attributes": {
+                                      "class": "rwOuterSpan"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "tagName": "span",
+                                        "attributes": {
+                                          "class": "rwInnerSpan"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "text",
+                                            "text": "##LOC[Cancel]##"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "input",
+                    "attributes": {
+                      "id": "RadWindowManager1_ClientState",
+                      "name": "RadWindowManager1_ClientState",
+                      "type": "hidden"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "script",
+                "attributes": {
+                  "type": "text/javascript"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "//<![CDATA[ window.__TsmHiddenField = $get('RadScriptManager1_TSM');;(function() { function loadHandler() { var hf = $get('Meta1_stylesheetManager_TSSM'); if (!hf._RSSM_init) { hf._RSSM_init = true; hf.value = ''; } hf.value += ';Telerik.Web.UI, Version=2022.2.622.45, Culture=neutral, PublicKeyToken=121fae78165ba3d4:en-US:632d5171-8657-40d1-a04f-15afaaf31752:45085116:aac1aeb7:fe53831e:d7e35272:f2eff81c:f7f0672f:92753c09;Telerik.Web.UI.Skins, Version=2022.2.622.45, Culture=neutral, PublicKeyToken=121fae78165ba3d4:en-US:207a89a9-8b19-4222-9e32-091f0d87f193:929e740d:a19c4d24:f7a27b73:bf721433'; Sys.Application.remove_load(loadHandler); }; Sys.Application.add_load(loadHandler); })();Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadAjaxManager, {\"_updatePanels\":\"\",\"ajaxSettings\":[{InitControlID : \"bLogin\",UpdatedControls : [{ControlID:\"bLogin\",PanelID:\"RadAjaxLoadingPanel4\"}]},{InitControlID : \"bAutoLogin\",UpdatedControls : [{ControlID:\"bLogin\",PanelID:\"RadAjaxLoadingPanel4\"}]},{InitControlID : \"wAuthorize_C_bAuthorize\",UpdatedControls : [{ControlID:\"wAuthorize_C_bAuthorize\",PanelID:\"RadAjaxLoadingPanel4\"}]},{InitControlID : \"wResetPassword_C_bResetPassword\",UpdatedControls : [{ControlID:\"wResetPassword_C_bResetPassword\",PanelID:\"RadAjaxLoadingPanel4\"}]},{InitControlID : \"wReset_C_bSetPassword\",UpdatedControls : [{ControlID:\"wReset_C_bSetPassword\",PanelID:\"RadAjaxLoadingPanel4\"}]}],\"clientEvents\":{OnRequestStart:\"\",OnResponseEnd:\"\"},\"defaultLoadingPanelID\":\"\",\"enableAJAX\":true,\"enableHistory\":false,\"links\":[],\"styles\":[],\"uniqueID\":\"RadAjaxManager1\",\"updatePanelsRenderMode\":1}, null, null, $get(\"RadAjaxManager1\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadAjaxLoadingPanel, {\"initialDelayTime\":0,\"isSticky\":false,\"minDisplayTime\":0,\"skin\":\"Metro\",\"transparency\":50,\"uniqueID\":\"RadAjaxLoadingPanel4\",\"zIndex\":90000}, null, null, $get(\"RadAjaxLoadingPanel4\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadTextBox, {\"_displayText\":\"Enter Your User Name\",\"_focused\":false,\"_initialValueAsText\":\"\",\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027tUserName\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"_validationText\":\"\",\"clientStateFieldID\":\"tUserName_ClientState\",\"emptyMessage\":\"Enter Your User Name\",\"enabled\":true,\"styles\":{HoveredStyle: [\"width:100%;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"width:100%;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;width:100%;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"width:100%;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"width:100%;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"width:100%;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"width:100%;\", \"riTextBox riEnabled defaultTextbox\"]}}, {\"valueChanging\":removeHTML}, null, $get(\"tUserName\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadTextBox, {\"_focused\":false,\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027tPassword\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"clientStateFieldID\":\"tPassword_ClientState\",\"emptyMessage\":\"Enter Your Password\",\"enabled\":true,\"styles\":{HoveredStyle: [\"width:100%;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"width:100%;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;width:100%;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"width:100%;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"width:100%;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"width:100%;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"width:100%;\", \"riTextBox riEnabled defaultTextbox\"]}}, {\"valueChanging\":removeHTML}, null, $get(\"tPassword\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadButton, {\"_accessKey\":\"\",\"_hasIcon\":false,\"_hasImage\":false,\"_isClientSubmit\":false,\"_isImageButton\":false,\"_postBackReference\":\"\",\"_renderMode\":1,\"clientStateFieldID\":\"bLogin_ClientState\",\"confirmSettings\":{},\"cssClass\":\"loginButton\",\"height\":\"40px\",\"iconData\":{},\"imageData\":{},\"text\":\"Login\",\"toggleStatesData\":[],\"uniqueGroupName\":\"\",\"uniqueID\":\"bLogin\",\"width\":\"100%\"}, {\"clicking\":getLoginDetails}, null, $get(\"bLogin\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadListView, {\"UniqueID\":\"lNewsFeed\",\"_allowPaging\":true,\"_clientSettings\":{\"DataBinding\":{\"ItemPlaceHolderID\":\"EventPlaceHolder\",\"LayoutTemplate\":\"\\r\\n \\u003cdiv \\r\\n ID=\\\"EventPlaceHolder\\\"\\r\\n style=\\\"border-bottom: .5px solid rgb(255,255,255); border-top: 0 solid rgb(255,255,255);\\\"\\u003e\\r\\n \\u003c/div\\u003e\\r\\n \",\"ItemTemplate\":\"\\r\\n \\u003cdiv id=\\\"newsWrapper\\\"\\u003e \\r\\n \\u003cdiv \\r\\n style=\\\"line-height: 200%; border-bottom: 4px solid rgb(255,255,255); border-top: 0 solid rgb(255,255,255); padding: 20px 0;\\\"\\r\\n onclick=\\\"clickManager(\\u0027#= clickUrl #\\u0027);\\\"\\u003e\\r\\n \\u003cspan\\r\\n style=\\\"font-size: 180%; font-weight: bold; text-transform: uppercase\\\"\\u003e#= title #\\u003c/span\\u003e\\r\\n \\u003cbr /\\u003e\\r\\n \\u003cspan style=\\\"font-size: 130%\\\"\\u003e#= body #\\r\\n \\u003c/span\\u003e\\r\\n \\u003cbr /\\u003e\\r\\n \\u003cspan style=\\\"font-size: 80%; line-height: 100%\\\"\\u003e\\r\\n #= createdDateTimeString #\\r\\n \\u003c/span\\u003e\\r\\n \\u003c/div\\u003e\\r\\n \",\"EmptyDataTemplate\":\"\\r\\n \\u003cdiv style=\\\"padding: 5px; box-sizing: border-box\\\"\\u003e\\r\\n ---\\r\\n \\u003c/div\\u003e\\r\\n \",\"DataService\":{}}},\"clientStateFieldID\":\"lNewsFeed_ClientState\",\"renderMode\":2}, null, null, $get(\"lNewsFeed\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadListView, {\"UniqueID\":\"lReleaseInfo\",\"_allowPaging\":true,\"_clientSettings\":{\"DataBinding\":{\"ItemPlaceHolderID\":\"releasePlaceHolder\",\"LayoutTemplate\":\"\\r\\n \\u003cdiv \\r\\n class=\\\"flexbox\\\" \\r\\n style=\\\"width: 100%; flex-wrap: wrap; \\\"\\r\\n ID=\\\"releasePlaceHolder\\\"\\u003e\\r\\n\\r\\n \\u003c/div\\u003e\\r\\n \",\"ItemTemplate\":\"\\r\\n \\u003cdiv class=\\\"col\\\" style=\\\"font-size: 125%; text-align: center; min-width: 150px; margin: 10px\\\"\\u003e\\r\\n \\u003ci style=\\\"font-size: 2.5em; display: block; margin: 5px; color: #= color #\\\" class=\\\"fas #= icon #\\\"\\u003e\\u003c/i\\u003e\\r\\n \\u003cb\\u003e#= title #\\u003c/b\\u003e\\r\\n \\u003cbr /\\u003e\\r\\n \\u003cspan style=\\\"font-size: 70%\\\"\\u003e\\r\\n #= message #\\r\\n \\u003c/span\\u003e\\r\\n \\u003c/div\\u003e\\r\\n \",\"EmptyDataTemplate\":\"\\r\\n \\u003cdiv style=\\\"padding: 5px; box-sizing: border-box\\\"\\u003e\\r\\n ---\\r\\n \\u003c/div\\u003e\\r\\n \",\"DataService\":{}}},\"clientStateFieldID\":\"lReleaseInfo_ClientState\",\"renderMode\":2}, null, null, $get(\"lReleaseInfo\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadMaskedTextBox, {\"_displayText\":\"\",\"_focused\":false,\"_initialMasks\":[new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadLiteralMaskPart('-'),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart(),new Telerik.Web.UI.RadFreeMaskPart()],\"_initialValueAsText\":\"\",\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027wAuthorize$C$tToken\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"_validationText\":\"\",\"clientStateFieldID\":\"wAuthorize_C_tToken_ClientState\",\"enabled\":true,\"styles\":{HoveredStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"font-size:30px;height:44px;width:200px;text-align:center;text-transform:uppercase;\", \"riTextBox riEnabled defaultTextbox\"]}}, null, null, $get(\"wAuthorize_C_tToken\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadButton, {\"_accessKey\":\"\",\"_hasIcon\":false,\"_hasImage\":false,\"_isClientSubmit\":false,\"_isImageButton\":false,\"_postBackReference\":\"\",\"_renderMode\":1,\"clientStateFieldID\":\"wAuthorize_C_bAuthorize_ClientState\",\"confirmSettings\":{},\"height\":\"40px\",\"iconData\":{},\"imageData\":{},\"text\":\"Authorize / Login\",\"toggleStatesData\":[],\"uniqueGroupName\":\"\",\"uniqueID\":\"wAuthorize$C$bAuthorize\",\"width\":\"300px\"}, null, null, $get(\"wAuthorize_C_bAuthorize\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadWindow, {\"_dockMode\":true,\"autoSize\":true,\"behaviors\":33,\"clientStateFieldID\":\"wAuthorize_ClientState\",\"enableShadow\":true,\"formID\":\"form1\",\"iconUrl\":\"\",\"keepInScreenBounds\":true,\"minimizeIconUrl\":\"\",\"modal\":true,\"name\":\"wAuthorize\",\"reloadOnShow\":true,\"showContentDuringLoad\":false,\"skin\":\"Metro\",\"title\":\"Two-Factor Authentication\",\"visibleStatusbar\":false}, {\"autoSizeEnd\":OnClientAutoSizeEnd}, null, $get(\"wAuthorize\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadTextBox, {\"_displayText\":\"Enter your username\",\"_focused\":false,\"_initialValueAsText\":\"\",\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027wResetPassword$C$tUserNameForReset\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"_validationText\":\"\",\"clientStateFieldID\":\"wResetPassword_C_tUserNameForReset_ClientState\",\"emptyMessage\":\"Enter your username\",\"enabled\":true,\"styles\":{HoveredStyle: [\"width:100%;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"width:100%;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;width:100%;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"width:100%;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"width:100%;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"width:100%;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"width:100%;\", \"riTextBox riEnabled defaultTextbox\"]}}, {\"valueChanging\":removeHTML}, null, $get(\"wResetPassword_C_tUserNameForReset\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadButton, {\"_accessKey\":\"\",\"_hasIcon\":false,\"_hasImage\":false,\"_isClientSubmit\":false,\"_isImageButton\":false,\"_postBackReference\":\"\",\"_renderMode\":1,\"clientStateFieldID\":\"wResetPassword_C_bResetPassword_ClientState\",\"confirmSettings\":{},\"height\":\"40px\",\"iconData\":{},\"imageData\":{},\"text\":\"Request Password Reset\",\"toggleStatesData\":[],\"uniqueGroupName\":\"\",\"uniqueID\":\"wResetPassword$C$bResetPassword\",\"width\":\"300px\"}, null, null, $get(\"wResetPassword_C_bResetPassword\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadWindow, {\"_dockMode\":true,\"autoSize\":true,\"behaviors\":37,\"clientStateFieldID\":\"wResetPassword_ClientState\",\"enableShadow\":true,\"formID\":\"form1\",\"iconUrl\":\"\",\"keepInScreenBounds\":true,\"minimizeIconUrl\":\"\",\"modal\":true,\"name\":\"wResetPassword\",\"reloadOnShow\":true,\"showContentDuringLoad\":false,\"skin\":\"Metro\",\"title\":\"Reset Password\",\"visibleStatusbar\":false}, {\"autoSizeEnd\":OnClientAutoSizeEnd}, null, $get(\"wResetPassword\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadTextBox, {\"_focused\":false,\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027wReset$C$tNewPassword\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"clientStateFieldID\":\"wReset_C_tNewPassword_ClientState\",\"enabled\":true,\"passwordSettings\":{ShowIndicator:true,CalculationWeightings:'50;15;15;20',PreferredPasswordLength:10,MinimumNumericCharacters:2,RequiresUpperAndLowerCaseCharacters:true,MinLowerCaseChars:2,MinUpperCaseChars:2,MinimumSymbolCharacters:2,TextStrengthDescriptions:'Very Weak;Weak;Medium;Strong;Very Strong',TextStrengthDescriptionStyles:'riStrengthBarL0;riStrengthBarL1;riStrengthBarL2;riStrengthBarL3;riStrengthBarL4;riStrengthBarL5;',IndicatorElementBaseStyle:'riStrengthBar',IndicatorElementID:'passwordStrength'},\"styles\":{HoveredStyle: [\"width:100%;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"width:100%;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;width:100%;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"width:100%;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"width:100%;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"width:100%;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"width:100%;\", \"riTextBox riEnabled defaultTextbox\"]}}, {\"passwordStrengthCalculating\":validatePw,\"valueChanging\":removeHTML}, null, $get(\"wReset_C_tNewPassword\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadTextBox, {\"_focused\":false,\"_postBackEventReferenceScript\":\"setTimeout(\\\"__doPostBack(\\\\\\u0027wReset$C$tNewPassword2\\\\\\u0027,\\\\\\u0027\\\\\\u0027)\\\", 0)\",\"_skin\":\"Metro\",\"clientStateFieldID\":\"wReset_C_tNewPassword2_ClientState\",\"enabled\":true,\"styles\":{HoveredStyle: [\"width:100%;\", \"riTextBox riHover defaultTextbox\"],InvalidStyle: [\"width:100%;\", \"riTextBox riError defaultTextbox\"],DisabledStyle: [\"color:Black;width:100%;\", \"riTextBox riDisabled disabledTextbox\"],FocusedStyle: [\"width:100%;\", \"riTextBox riFocused defaultTextbox\"],EmptyMessageStyle: [\"width:100%;\", \"riTextBox riEmpty defaultTextbox\"],ReadOnlyStyle: [\"width:100%;\", \"riTextBox riRead disabledTextBox\"],EnabledStyle: [\"width:100%;\", \"riTextBox riEnabled defaultTextbox\"]}}, {\"valueChanging\":removeHTML}, null, $get(\"wReset_C_tNewPassword2\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadButton, {\"_accessKey\":\"\",\"_hasIcon\":false,\"_hasImage\":false,\"_isClientSubmit\":false,\"_isImageButton\":false,\"_postBackReference\":\"\",\"_renderMode\":1,\"clientStateFieldID\":\"wReset_C_bSetPassword_ClientState\",\"confirmSettings\":{},\"iconData\":{},\"imageData\":{},\"text\":\"Save\",\"toggleStatesData\":[],\"uniqueGroupName\":\"\",\"uniqueID\":\"wReset$C$bSetPassword\",\"width\":\"100px\"}, {\"clicking\":checkPassword}, null, $get(\"wReset_C_bSetPassword\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadWindow, {\"_dockMode\":true,\"autoSize\":true,\"behaviors\":33,\"clientStateFieldID\":\"wReset_ClientState\",\"enableShadow\":true,\"formID\":\"form1\",\"iconUrl\":\"\",\"keepInScreenBounds\":true,\"minimizeIconUrl\":\"\",\"modal\":true,\"name\":\"wReset\",\"reloadOnShow\":true,\"showContentDuringLoad\":false,\"skin\":\"Metro\",\"title\":\"Reset My Password\",\"visibleStatusbar\":false}, {\"autoSizeEnd\":OnClientAutoSizeEnd}, null, $get(\"wReset\")); }); Sys.Application.add_init(function() { $create(Telerik.Web.UI.RadWindowManager, {\"autoSize\":true,\"clientStateFieldID\":\"RadWindowManager1_ClientState\",\"enableShadow\":true,\"formID\":\"form1\",\"iconUrl\":\"\",\"keepInScreenBounds\":true,\"minimizeIconUrl\":\"\",\"name\":\"RadWindowManager1\",\"reloadOnShow\":true,\"showContentDuringLoad\":false,\"skin\":\"Metro\",\"visibleStatusbar\":false,\"windowControls\":\"['wAuthorize','wResetPassword','wReset']\"}, {\"autoSizeEnd\":OnClientAutoSizeEnd}, {\"child\":\"wAuthorize\"}, $get(\"RadWindowManager1\")); }); //]]>"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "type": "text/javascript",
+              "src": "/_Incapsula_Resource?SWJIYLWA=719d34d31c8e3a6e6fffd425f7e032f3&ns=3&cb=484073879"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+id: query-subscription
+description: Default workflow that opens the site, logs in, clicks the Subscriptions shortcut, lands on the subscription page, and runs a customer search.
+dependsOn:
+  - login
+steps:
+  - type: waitForUrl
+    urlExcludes: /login.aspx
+  - type: usePage
+    page: dashboard-page
+  - type: waitFor
+    target: mainMenuRoot
+  - type: pause
+    ms: 2000
+  - type: click
+    target: subscriptionsShortcut
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /circ/home/index
+  - type: usePage
+    page: subscription-page
+  - type: waitFor
+    target: subscriptionHistoryGrid
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: customerSearchInput
+  - type: fill
+    target: customerSearchInput
+    value: "env:NAVIGA_QUERY"
+  - type: pause
+    ms: 2000
+  - type: click
+    target: customerSearchButton
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /search/search_customer.aspx
+  - type: usePage
+    page: customer-search-results-page
+  - type: waitFor
+    target: searchResultsGrid
+  - type: pause
+    ms: 2000
+  - type: click
+    target: firstResultIdLink
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /circ/default
+  - type: usePage
+    page: customer-detail-page
+  - type: waitFor
+    target: firstSubscriptionIdLink
+  - type: pause
+    ms: 2000
+  - type: click
+    target: firstSubscriptionIdLink
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /circ/subscription/detail/
+  - type: exportSubscriptionDetail
+    outputPath: artifacts/json/subscription-detail.json

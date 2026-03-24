@@ -1,0 +1,4 @@
+version: 1
+browser:
+  headless: false
+defaultWorkflow: query-subscription

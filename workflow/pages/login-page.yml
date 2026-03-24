@@ -1,0 +1,8 @@
+id: login-page
+selectors:
+  usernameInput:
+    css: "#tUserName"
+  passwordInput:
+    css: "#tPassword"
+  submitButton:
+    css: "#bLogin"

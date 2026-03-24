@@ -1,0 +1,21 @@
+id: login
+description: Open the login page, enter credentials, and submit with visual pauses between actions.
+dependsOn:
+  - open-entry-site
+steps:
+  - type: usePage
+    page: login-page
+  - type: fill
+    target: usernameInput
+    value: env:NAVIGA_USERNAME
+  - type: pause
+    ms: 2000
+  - type: fill
+    target: passwordInput
+    value: env:NAVIGA_PASSWORD
+  - type: pause
+    ms: 2000
+  - type: click
+    target: submitButton
+  - type: pause
+    ms: 2000

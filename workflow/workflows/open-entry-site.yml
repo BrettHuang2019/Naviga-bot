@@ -1,0 +1,7 @@
+id: open-entry-site
+description: Open the entry URL from .env.
+steps:
+  - type: goto
+    url: env:ENTRY_URL
+  - type: pause
+    ms: 2000
