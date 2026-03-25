@@ -13,6 +13,12 @@
     "https://baycandev.navigahub.com/ew/bay/Circ/entry_orders_circ.aspx?BatchID=4621&BatchRenewal=1": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-fcdf196e.json",
     "https://baycandev.navigahub.com/ew/bay/circ/entry_orders_circ.aspx?BatchID=4621&ID=829999&NewSubInRenewalBatch=1": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-e769bd7c.json",
     "https://baycandev.navigahub.com/ew/bay/default": "baycandev-navigahub-com-ew-bay-default-16e420ac.json",
-    "https://baycandev.navigahub.com/ew/bay/circ/home/index": "baycandev-navigahub-com-ew-bay-circ-home-index-39dd3899.json"
+    "https://baycandev.navigahub.com/ew/bay/circ/home/index": "baycandev-navigahub-com-ew-bay-circ-home-index-39dd3899.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/batch/edit?a_module=CW": "baycandev-navigahub-com-ew-bay-circ-batch-edit-147927b0.json",
+    "https://baycandev.navigahub.com/ew/bay/Circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-b4bc4a22.json",
+    "https://baycandev.navigahub.com/ew/bay/circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-3240bd6d.json",
+    "https://baycandev.navigahub.com/EW/BAY/MVC/MVCHelp.aspx?MVCUrl=%2fcirc%2fbatch%2fedit%2f4621": "baycandev-navigahub-com-ew-bay-mvc-mvchelp-aspx-dae3a3ed.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/entry_orders_circ.aspx?subID=2008820&BatchID=4621": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-39dd735d.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-51aaee55.json"
   }
 }

@@ -5,9 +5,16 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 ## Usage
 
 1. Copy `.env.example` to `.env`.
-2. Set `ENTRY_URL`, `NAVIGA_USERNAME`, `NAVIGA_PASSWORD`, and `NAVIGA_QUERY` in `.env`.
+2. Set stable config in `.env`: `ENTRY_URL`, `NAVIGA_USERNAME`, and `NAVIGA_PASSWORD`.
 3. Run `npm run dev`.
-4. To run a specific workflow, use `npm run dev -- query-subscription`.
+4. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
+
+Examples:
+
+```bash
+npm run dev -- query-subscription --env:NAVIGA_QUERY=829999
+npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621
+```
 
 The app config is `workflow/app.yml`. It selects browser settings and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
 
@@ -67,7 +74,7 @@ Recommended test order:
 2. Run `npm run dev -- open-entry-site`.
 3. Check the saved DOM snapshot in `artifacts/dom/` and update page selectors.
 4. Run `npm run dev -- login`.
-5. After login selectors are stable, run `npm run dev -- query-subscription`.
+5. After login selectors are stable, run `npm run dev -- query-subscription --env:NAVIGA_QUERY=<client-number>`.
 
 The default workflow now performs this sequence with a 2 second pause between visible actions:
 

@@ -2,7 +2,17 @@ id: subscription-page
 selectors:
   subscriptionHistoryGrid:
     css: "#SubscriptionHistoryGrid"
+  enterSingleSubBatchShortcut:
+    text: "Enter Single Sub Batch"
   customerSearchInput:
     css: "#CustomerSearchText"
   customerSearchButton:
     css: "#CustomerSearchButton"
+  subscriberIdInput:
+    css: "#dSubscriberID_Input"
+  subscriberIdPopup:
+    css: "#dSubscriberID_DropDown"
+  subscriberIdPopupResults:
+    css: "#dSubscriberID_DropDown li.rcbItem td:first-child"
+  addNewSubscriptionButton:
+    css: "#bGetSubscriber"

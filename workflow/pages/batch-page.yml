@@ -1,0 +1,8 @@
+id: batch-page
+selectors:
+  batchIdInput:
+    css: "#BatchId"
+  batchLookupButton:
+    css: "#BatchLookup"
+  addRenewalsButton:
+    css: "#elanmvc-circ-add-subs"

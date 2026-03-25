@@ -1,0 +1,92 @@
+id: add-subscription-to-batch
+description: Open the site and log in as the starting point for adding a subscription to a batch.
+dependsOn:
+  - login
+steps:
+  - type: waitForUrl
+    urlExcludes: /login.aspx
+  - type: usePage
+    page: dashboard-page
+  - type: waitFor
+    target: mainMenuRoot
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: enterSingleSubBatchShortcut
+  - type: pause
+    ms: 2000
+  - type: click
+    target: enterSingleSubBatchShortcut
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /circ/batch/edit
+  - type: usePage
+    page: batch-page
+  - type: waitFor
+    target: batchIdInput
+  - type: pause
+    ms: 2000
+  - type: fill
+    target: batchIdInput
+    value: env:NAVIGA_BATCH_ID
+  - type: pause
+    ms: 2000
+  - type: click
+    target: batchLookupButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: addRenewalsButton
+  - type: pause
+    ms: 2000
+  - type: click
+    target: addRenewalsButton
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: entry_orders_circ.aspx
+  - type: usePage
+    page: batch-renewal-popup-page
+  - type: waitFor
+    target: searchSubscriberButton
+  - type: pause
+    ms: 2000
+  - type: click
+    target: searchSubscriberButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: searchSubscriberPopupFrame
+  - type: usePage
+    page: renewal-customer-search-popup-page
+  - type: waitFor
+    target: customerSearchInput
+  - type: fill
+    target: customerSearchInput
+    value: env:NAVIGA_QUERY
+  - type: pause
+    ms: 2000
+  - type: click
+    target: customerSearchButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: searchResultsGrid
+  - type: clickExactText
+    target: searchResultIdLinks
+    value: env:NAVIGA_QUERY
+  - type: pause
+    ms: 2000
+  - type: usePage
+    page: batch-renewal-popup-page
+  - type: waitFor
+    target: addNewSubscriptionButton
+  - type: pause
+    ms: 2000
+  - type: click
+    target: addNewSubscriptionButton
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: NewSubInRenewalBatch=1

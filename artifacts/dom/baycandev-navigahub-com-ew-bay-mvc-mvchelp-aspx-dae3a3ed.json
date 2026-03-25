@@ -1,0 +1,242 @@
+{
+  "capturedAt": "2026-03-25T16:15:19.966Z",
+  "url": "https://baycandev.navigahub.com/EW/BAY/MVC/MVCHelp.aspx?MVCUrl=%2fcirc%2fbatch%2fedit%2f4621",
+  "title": "Help!",
+  "root": {
+    "type": "element",
+    "tagName": "html",
+    "attributes": {},
+    "children": [
+      {
+        "type": "element",
+        "tagName": "head",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "tagName": "title",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "Help!"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {},
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "author"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "copyright"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "distribution"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {},
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "meta",
+            "attributes": {
+              "name": "viewport"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/ew/bay/apple-touch-icon-precomposed.png"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/ew/bay/favicon.ico"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/js/jquery-ui/jquery-ui.min.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/css/elan-style.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/css/elan-flex.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "link",
+            "attributes": {
+              "href": "/EW/BAY/resources/js/browserdetection/browser-detection.css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {
+              "type": "text/css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "style",
+            "attributes": {
+              "type": "text/css"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "type": "text/javascript"
+            },
+            "children": [
+              {
+                "type": "text",
+                "text": "var virtualRoot = '/ew/bay'; virtualRoot = virtualRoot.toLowerCase(); var cookiePath = virtualRoot == '' ? '/' : virtualRoot; var confirmChangeLanguageMsg = \"WARNING: You are about to change Languages. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var confirmEnableTrainingMode = \"WARNING: You are about to enable Training Mode. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var confirmDisableTrainingMode = \"WARNING: You are about to disable Training Mode. This will cause the screen to refresh and any unsaved work will be lost. Are you sure you want to continue?\"; var errorHandler = function (msg, srcUrl, line) { var alertmsg = String.format('WARNING: An error has occurred on this page which may prevent it from working properly.{3} Message: {0}{3} Line: {1}{3} URL:{2}', msg, line, document.location.href, '\\n\\n'); alert(alertmsg); var receiveReq = createHttpRequest(); var url = virtualRoot + '/general/ErrorHandlers/javascript_error_handler'; var data = \"ErrorData=\" + msg + \"&SourcePage=\" + srcUrl + \"&Line=\" + line; receiveReq.open(\"POST\", url, true); receiveReq.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\"); receiveReq.send(data); }; window.onerror = false === true ? errorHandler : null;"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "https://www.googletagmanager.com/gtag/js?id=G-HE0EEXLZ7Z"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {},
+            "children": [
+              {
+                "type": "text",
+                "text": "window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-HE0EEXLZ7Z');"
+              }
+            ]
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/jquery-2.0.3.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/jquery-ui/jquery-ui.min.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/highcharts.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/highcharts-more.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/modules/no-data-to-display.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/themes/elan_default.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/highcharts/modules/exporting.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/browserdetection/browser-detection.js"
+            },
+            "children": []
+          },
+          {
+            "type": "element",
+            "tagName": "script",
+            "attributes": {
+              "src": "/EW/BAY/resources/js/kendo.all.min.js"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

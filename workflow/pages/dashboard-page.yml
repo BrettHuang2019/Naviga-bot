@@ -2,5 +2,7 @@ id: dashboard-page
 selectors:
   mainMenuRoot:
     css: "#RadTileList1"
+  enterSingleSubBatchShortcut:
+    text: "Enter Single Sub Batch"
   subscriptionsShortcut:
     css: "#RadTileList1_mmSubscriptions"

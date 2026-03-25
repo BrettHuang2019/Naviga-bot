@@ -1,0 +1,22 @@
+id: renewal-customer-search-popup-page
+selectors:
+  customerSearchInput:
+    framePath:
+      - "iframe[name='wBatchRenewal']"
+      - "iframe[name='wRenewalSearch']"
+    css: "#tSimpleSearch"
+  customerSearchButton:
+    framePath:
+      - "iframe[name='wBatchRenewal']"
+      - "iframe[name='wRenewalSearch']"
+    css: "#bSimpleSearch_input"
+  searchResultsGrid:
+    framePath:
+      - "iframe[name='wBatchRenewal']"
+      - "iframe[name='wRenewalSearch']"
+    css: "#gResults"
+  searchResultIdLinks:
+    framePath:
+      - "iframe[name='wBatchRenewal']"
+      - "iframe[name='wRenewalSearch']"
+    css: "#gResults td:nth-child(2) a"

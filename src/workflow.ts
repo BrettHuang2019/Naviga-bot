@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Locator, Page } from "playwright";
+import type { FrameLocator, Locator, Page } from "playwright";
 import type { PageDefinition, SelectorDefinition, WorkflowDefinition } from "./config.js";
 import { resolveEnvReference } from "./config.js";
 
@@ -237,6 +237,42 @@ async function exportSubscriptionDetail(
   console.log(`Exported subscription detail -> ${destinationPath}`);
 }
 
+async function waitForLocatorValue(locator: Locator, expectedValue: string, timeoutMs = 5000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    try {
+      const currentValue = await locator.inputValue();
+      if (currentValue === expectedValue) {
+        return;
+      }
+    } catch {
+      // Keep polling while the control settles or is briefly detached.
+    }
+
+    await locator.page().waitForTimeout(100);
+  }
+
+  const actualValue = await locator.inputValue().catch(() => "<unavailable>");
+  throw new Error(`Expected input value "${expectedValue}" but found "${actualValue}".`);
+}
+
+async function clickLocatorWithExactText(locator: Locator, expectedText: string): Promise<void> {
+  const count = await locator.count();
+
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    const text = (await candidate.textContent())?.replace(/\s+/g, " ").trim();
+
+    if (text === expectedText) {
+      await candidate.click();
+      return;
+    }
+  }
+
+  throw new Error(`Could not find an exact text match for "${expectedText}".`);
+}
+
 function resolveWorkflowOrder(
   workflowId: string,
   workflows: Map<string, WorkflowDefinition>,
@@ -271,24 +307,35 @@ function resolveWorkflowOrder(
 }
 
 function buildLocator(page: Page, selector: SelectorDefinition): Locator {
+  let scope: Page | FrameLocator = page;
+
+  if (selector.frameCss) {
+    scope = page.frameLocator(selector.frameCss);
+  } else if (selector.framePath) {
+    scope = selector.framePath.reduce<Page | FrameLocator>(
+      (currentScope, frameCss) => currentScope.frameLocator(frameCss),
+      page,
+    );
+  }
+
   if (selector.css) {
-    return page.locator(selector.css);
+    return scope.locator(selector.css);
   }
 
   if (selector.text) {
-    return page.getByText(selector.text, { exact: true });
+    return scope.getByText(selector.text, { exact: true });
   }
 
   if (selector.label) {
-    return page.getByLabel(selector.label, { exact: true });
+    return scope.getByLabel(selector.label, { exact: true });
   }
 
   if (selector.placeholder) {
-    return page.getByPlaceholder(selector.placeholder, { exact: true });
+    return scope.getByPlaceholder(selector.placeholder, { exact: true });
   }
 
   if (selector.role) {
-    return page.getByRole(selector.role as never, selector.name ? { name: selector.name, exact: true } : {});
+    return scope.getByRole(selector.role as never, selector.name ? { name: selector.name, exact: true } : {});
   }
 
   throw new Error("Invalid selector definition.");
@@ -361,7 +408,7 @@ export async function executeWorkflow(
           const matchesInclude = step.urlIncludes ? currentUrl.includes(step.urlIncludes) : true;
           const matchesExclude = step.urlExcludes ? !currentUrl.includes(step.urlExcludes) : true;
           return matchesInclude && matchesExclude;
-        });
+        }, { waitUntil: "domcontentloaded" });
         continue;
       }
 
@@ -378,9 +425,16 @@ export async function executeWorkflow(
         continue;
       }
 
+      if (step.type === "clickExactText") {
+        const value = resolveEnvReference(step.value, runtime.env);
+        await clickLocatorWithExactText(locator, value);
+        continue;
+      }
+
       if (step.type === "fill") {
         const value = resolveEnvReference(step.value, runtime.env);
         await locator.fill(value);
+        await waitForLocatorValue(locator, value);
         continue;
       }
 

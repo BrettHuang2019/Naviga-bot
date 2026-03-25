@@ -1,0 +1,14 @@
+id: batch-renewal-popup-page
+selectors:
+  searchSubscriberButton:
+    frameCss: "iframe[name='wBatchRenewal']"
+    css: "#bSearchSubscriber"
+  searchSubscriberPopupFrame:
+    frameCss: "iframe[name='wBatchRenewal']"
+    css: "iframe[name='wRenewalSearch']"
+  renewalSubscriberInput:
+    frameCss: "iframe[name='wBatchRenewal']"
+    css: "#dRenewalSubscriberID_Input"
+  addNewSubscriptionButton:
+    frameCss: "iframe[name='wBatchRenewal']"
+    css: "#bAddNewSub_input"

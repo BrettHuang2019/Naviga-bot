@@ -1,4 +1,4 @@
 version: 1
 browser:
   headless: false
-defaultWorkflow: query-subscription
+defaultWorkflow: add-subscription-to-batch

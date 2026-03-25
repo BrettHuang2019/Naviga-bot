@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import type { Page } from "playwright";
+import type { Frame, Page } from "playwright";
 
 type SnapshotManifest = {
   pages: Record<string, string>;
@@ -118,6 +118,73 @@ async function collectDomSnapshot(page: Page): Promise<PageSnapshot> {
   `);
 }
 
+async function collectDomSnapshotForFrame(frame: Frame): Promise<PageSnapshot> {
+  return frame.evaluate(`
+    (() => {
+      const allowedAttributes = new Set([
+        "id",
+        "name",
+        "role",
+        "type",
+        "value",
+        "href",
+        "src",
+        "alt",
+        "title",
+        "placeholder",
+        "aria-label",
+        "aria-labelledby",
+        "aria-describedby",
+        "data-testid",
+        "data-test",
+        "for"
+      ]);
+
+      const serializeNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.replace(/\\s+/g, " ").trim();
+          return text ? { type: "text", text } : null;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return null;
+        }
+
+        const element = node;
+        const attributes = Array.from(element.attributes).reduce((accumulator, attribute) => {
+          if (
+            allowedAttributes.has(attribute.name) ||
+            attribute.name === "class" ||
+            attribute.name.startsWith("data-")
+          ) {
+            accumulator[attribute.name] = attribute.value;
+          }
+
+          return accumulator;
+        }, {});
+
+        const children = Array.from(element.childNodes)
+          .map((childNode) => serializeNode(childNode))
+          .filter((childNode) => childNode !== null);
+
+        return {
+          type: "element",
+          tagName: element.tagName.toLowerCase(),
+          attributes,
+          children
+        };
+      };
+
+      return {
+        capturedAt: new Date().toISOString(),
+        url: window.location.href,
+        title: document.title,
+        root: serializeNode(document.documentElement)
+      };
+    })()
+  `);
+}
+
 export async function createDomSnapshotRecorder(rootDir: string): Promise<{
   capture: (page: Page) => Promise<void>;
 }> {
@@ -131,29 +198,44 @@ export async function createDomSnapshotRecorder(rootDir: string): Promise<{
 
   return {
     async capture(page: Page): Promise<void> {
-      const currentUrl = page.url();
-      if (!currentUrl || currentUrl === "about:blank") {
-        return;
-      }
+      const captureUrl = async (url: string, collectSnapshot: () => Promise<PageSnapshot>): Promise<void> => {
+        if (!url || url === "about:blank") {
+          return;
+        }
 
-      const normalizedUrl = normalizeUrl(currentUrl);
-      if (manifest.pages[normalizedUrl] || inFlight.has(normalizedUrl)) {
-        return;
-      }
+        const normalizedUrl = normalizeUrl(url);
+        if (manifest.pages[normalizedUrl] || inFlight.has(normalizedUrl)) {
+          return;
+        }
 
-      inFlight.add(normalizedUrl);
+        inFlight.add(normalizedUrl);
 
-      try {
-        const snapshot = await collectDomSnapshot(page);
-        const fileName = `${toSlug(normalizedUrl)}.json`;
-        const filePath = path.join(snapshotDir, fileName);
+        try {
+          const snapshot = await collectSnapshot();
+          const fileName = `${toSlug(normalizedUrl)}.json`;
+          const filePath = path.join(snapshotDir, fileName);
 
-        await writeFile(filePath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-        manifest.pages[normalizedUrl] = fileName;
-        await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-        console.log(`Saved DOM snapshot for ${normalizedUrl} -> ${fileName}`);
-      } finally {
-        inFlight.delete(normalizedUrl);
+          await writeFile(filePath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+          manifest.pages[normalizedUrl] = fileName;
+          await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          console.log(`Saved DOM snapshot for ${normalizedUrl} -> ${fileName}`);
+        } finally {
+          inFlight.delete(normalizedUrl);
+        }
+      };
+
+      await captureUrl(page.url(), () => collectDomSnapshot(page));
+
+      for (const frame of page.frames()) {
+        if (frame === page.mainFrame()) {
+          continue;
+        }
+
+        try {
+          await captureUrl(frame.url(), () => collectDomSnapshotForFrame(frame));
+        } catch {
+          // Ignore detached or inaccessible frames while the page is still loading.
+        }
       }
     },
   };

@@ -7,6 +7,8 @@ const envValueSchema = z.string().min(1);
 
 const selectorSchema = z
   .object({
+    frameCss: z.string().min(1).optional(),
+    framePath: z.array(z.string().min(1)).min(1).optional(),
     css: z.string().min(1).optional(),
     text: z.string().min(1).optional(),
     label: z.string().min(1).optional(),
@@ -36,6 +38,13 @@ const selectorSchema = z
         message: "Selector name can only be used together with role.",
       });
     }
+
+    if (selector.frameCss && selector.framePath) {
+      context.addIssue({
+        code: "custom",
+        message: "Use frameCss or framePath, not both.",
+      });
+    }
   });
 
 const stepSchema = z.discriminatedUnion("type", [
@@ -54,6 +63,11 @@ const stepSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("click"),
     target: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("clickExactText"),
+    target: z.string().min(1),
+    value: z.string().min(1),
   }),
   z.object({
     type: z.literal("fill"),
