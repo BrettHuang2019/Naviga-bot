@@ -1,9 +1,14 @@
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
-import { loadAppConfig, loadEnv, loadPageDefinitions, loadWorkflowDefinitions } from "./config.js";
-import { createDomSnapshotRecorder } from "./snapshot.js";
-import { executeWorkflow } from "./workflow.js";
+import { loadEnv } from "../../src/config/env.js";
+import {
+  createDomSnapshotRecorder,
+  executeWorkflow,
+  loadAppConfig,
+  loadPageDefinitions,
+  loadWorkflowDefinitions,
+} from "../../src/naviga-workflows/index.js";
 
 function parseCliEnvOverrides(args: string[]): Record<string, string> {
   return args.reduce<Record<string, string>>((overrides, arg) => {
@@ -101,7 +106,7 @@ async function main(): Promise<void> {
     console.log(`Applied CLI env overrides: ${Object.keys(envOverrides).join(", ")}`);
   }
   if (appConfig.browser.keepOpen) {
-    console.log(`Browser remains open. Press Ctrl+C in this terminal to stop the process.`);
+    console.log("Browser remains open. Press Ctrl+C in this terminal to stop the process.");
     await new Promise(() => {});
   }
 

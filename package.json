@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx apps/worker/index.ts",
     "typecheck": "tsc --noEmit",
     "install:browsers": "playwright install chromium"
   },
