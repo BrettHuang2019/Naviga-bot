@@ -4,8 +4,8 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 
 ## Usage
 
-1. Copy `.env.example` to `.env`.
-2. Set stable config in `.env`: `ENTRY_URL`, `NAVIGA_USERNAME`, and `NAVIGA_PASSWORD`.
+1. Copy `.env.example` to `.env` if you want local defaults.
+2. Set stable config in `.env` or your shell environment: `ENTRY_URL`, `NAVIGA_USERNAME`, and `NAVIGA_PASSWORD`.
 3. Run `npm run dev`.
 4. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
 
@@ -16,7 +16,7 @@ npm run dev -- query-subscription --env:NAVIGA_QUERY=829999
 npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621
 ```
 
-The app config is `workflow/app.yml`. It selects browser settings and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
+The app config is `workflow/app.yml`. It selects browser settings, whether the browser stays open after the workflow, and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
 
 ## Workflow structure
 
@@ -91,6 +91,7 @@ The default workflow now performs this sequence with a 2 second pause between vi
 Notes:
 
 - The browser stays open on purpose. Stop each run with `Ctrl+C`.
+- Set `browser.keepOpen: false` in `workflow/app.yml` if you want the browser to close automatically after the workflow finishes.
 - If a selector is wrong, the workflow fails at that step.
 - A page snapshot is only saved the first time that normalized URL is visited.
 

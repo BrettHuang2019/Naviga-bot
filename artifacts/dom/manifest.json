@@ -19,6 +19,8 @@
     "https://baycandev.navigahub.com/ew/bay/circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-3240bd6d.json",
     "https://baycandev.navigahub.com/EW/BAY/MVC/MVCHelp.aspx?MVCUrl=%2fcirc%2fbatch%2fedit%2f4621": "baycandev-navigahub-com-ew-bay-mvc-mvchelp-aspx-dae3a3ed.json",
     "https://baycandev.navigahub.com/EW/BAY/circ/entry_orders_circ.aspx?subID=2008820&BatchID=4621": "baycandev-navigahub-com-ew-bay-circ-entry-orders-circ-aspx-39dd735d.json",
-    "https://baycandev.navigahub.com/EW/BAY/circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-51aaee55.json"
+    "https://baycandev.navigahub.com/EW/BAY/circ/Batch/Edit/4621": "baycandev-navigahub-com-ew-bay-circ-batch-edit-4621-51aaee55.json",
+    "https://baycandev.navigahub.com/EW/BAY/search/search_customer.aspx?m=redirect&type=CW&r=%2Fcirc%2Fdefault.aspx%3FID%3D&s=502157": "baycandev-navigahub-com-ew-bay-search-search-customer-aspx-e45b93d8.json",
+    "https://baycandev.navigahub.com/EW/BAY/circ/default_new.aspx?ID=502157": "baycandev-navigahub-com-ew-bay-circ-default-new-aspx-97f747c6.json"
   }
 }

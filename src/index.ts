@@ -50,6 +50,26 @@ async function main(): Promise<void> {
   const context = await browser.newContext();
   const page = await context.newPage();
   const snapshotRecorder = await createDomSnapshotRecorder(rootDir);
+  let shuttingDown = false;
+
+  const shutdown = async (signal: string): Promise<void> => {
+    if (shuttingDown) {
+      return;
+    }
+
+    shuttingDown = true;
+    console.log(`Received ${signal}. Closing browser...`);
+    await context.close().catch(() => undefined);
+    await browser.close().catch(() => undefined);
+  };
+
+  process.once("SIGINT", () => {
+    void shutdown("SIGINT").finally(() => process.exit(0));
+  });
+
+  process.once("SIGTERM", () => {
+    void shutdown("SIGTERM").finally(() => process.exit(0));
+  });
 
   page.on("domcontentloaded", async () => {
     try {
@@ -80,9 +100,12 @@ async function main(): Promise<void> {
   if (Object.keys(envOverrides).length > 0) {
     console.log(`Applied CLI env overrides: ${Object.keys(envOverrides).join(", ")}`);
   }
-  console.log(`Browser remains open. Press Ctrl+C in this terminal to stop the process.`);
+  if (appConfig.browser.keepOpen) {
+    console.log(`Browser remains open. Press Ctrl+C in this terminal to stop the process.`);
+    await new Promise(() => {});
+  }
 
-  await new Promise(() => {});
+  await shutdown("workflow-complete");
 }
 
 main().catch((error: unknown) => {

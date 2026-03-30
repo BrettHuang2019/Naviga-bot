@@ -23,6 +23,70 @@ type PageSnapshot = {
 };
 
 const EMPTY_MANIFEST: SnapshotManifest = { pages: {} };
+const DOM_SNAPSHOT_EVALUATOR = `
+  (() => {
+    const allowedAttributes = new Set([
+      "id",
+      "name",
+      "role",
+      "type",
+      "value",
+      "href",
+      "src",
+      "alt",
+      "title",
+      "placeholder",
+      "aria-label",
+      "aria-labelledby",
+      "aria-describedby",
+      "data-testid",
+      "data-test",
+      "for"
+    ]);
+
+    const serializeNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.replace(/\\s+/g, " ").trim();
+        return text ? { type: "text", text } : null;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+      }
+
+      const element = node;
+      const attributes = Array.from(element.attributes).reduce((accumulator, attribute) => {
+        if (
+          allowedAttributes.has(attribute.name) ||
+          attribute.name === "class" ||
+          attribute.name.startsWith("data-")
+        ) {
+          accumulator[attribute.name] = attribute.value;
+        }
+
+        return accumulator;
+      }, {});
+
+      const children = Array.from(element.childNodes)
+        .map((childNode) => serializeNode(childNode))
+        .filter((childNode) => childNode !== null);
+
+      return {
+        type: "element",
+        tagName: element.tagName.toLowerCase(),
+        attributes,
+        children
+      };
+    };
+
+    return {
+      capturedAt: new Date().toISOString(),
+      url: window.location.href,
+      title: document.title,
+      root: serializeNode(document.documentElement)
+    };
+  })()
+`;
 
 function normalizeUrl(url: string): string {
   const parsedUrl = new URL(url);
@@ -52,137 +116,11 @@ async function readManifest(manifestPath: string): Promise<SnapshotManifest> {
 }
 
 async function collectDomSnapshot(page: Page): Promise<PageSnapshot> {
-  return page.evaluate(`
-    (() => {
-      const allowedAttributes = new Set([
-        "id",
-        "name",
-        "role",
-        "type",
-        "value",
-        "href",
-        "src",
-        "alt",
-        "title",
-        "placeholder",
-        "aria-label",
-        "aria-labelledby",
-        "aria-describedby",
-        "data-testid",
-        "data-test",
-        "for"
-      ]);
-
-      const serializeNode = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.replace(/\\s+/g, " ").trim();
-          return text ? { type: "text", text } : null;
-        }
-
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          return null;
-        }
-
-        const element = node;
-        const attributes = Array.from(element.attributes).reduce((accumulator, attribute) => {
-          if (
-            allowedAttributes.has(attribute.name) ||
-            attribute.name === "class" ||
-            attribute.name.startsWith("data-")
-          ) {
-            accumulator[attribute.name] = attribute.value;
-          }
-
-          return accumulator;
-        }, {});
-
-        const children = Array.from(element.childNodes)
-          .map((childNode) => serializeNode(childNode))
-          .filter((childNode) => childNode !== null);
-
-        return {
-          type: "element",
-          tagName: element.tagName.toLowerCase(),
-          attributes,
-          children
-        };
-      };
-
-      return {
-        capturedAt: new Date().toISOString(),
-        url: window.location.href,
-        title: document.title,
-        root: serializeNode(document.documentElement)
-      };
-    })()
-  `);
+  return page.evaluate(DOM_SNAPSHOT_EVALUATOR);
 }
 
 async function collectDomSnapshotForFrame(frame: Frame): Promise<PageSnapshot> {
-  return frame.evaluate(`
-    (() => {
-      const allowedAttributes = new Set([
-        "id",
-        "name",
-        "role",
-        "type",
-        "value",
-        "href",
-        "src",
-        "alt",
-        "title",
-        "placeholder",
-        "aria-label",
-        "aria-labelledby",
-        "aria-describedby",
-        "data-testid",
-        "data-test",
-        "for"
-      ]);
-
-      const serializeNode = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.replace(/\\s+/g, " ").trim();
-          return text ? { type: "text", text } : null;
-        }
-
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          return null;
-        }
-
-        const element = node;
-        const attributes = Array.from(element.attributes).reduce((accumulator, attribute) => {
-          if (
-            allowedAttributes.has(attribute.name) ||
-            attribute.name === "class" ||
-            attribute.name.startsWith("data-")
-          ) {
-            accumulator[attribute.name] = attribute.value;
-          }
-
-          return accumulator;
-        }, {});
-
-        const children = Array.from(element.childNodes)
-          .map((childNode) => serializeNode(childNode))
-          .filter((childNode) => childNode !== null);
-
-        return {
-          type: "element",
-          tagName: element.tagName.toLowerCase(),
-          attributes,
-          children
-        };
-      };
-
-      return {
-        capturedAt: new Date().toISOString(),
-        url: window.location.href,
-        title: document.title,
-        root: serializeNode(document.documentElement)
-      };
-    })()
-  `);
+  return frame.evaluate(DOM_SNAPSHOT_EVALUATOR);
 }
 
 export async function createDomSnapshotRecorder(rootDir: string): Promise<{

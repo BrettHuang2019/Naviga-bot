@@ -101,8 +101,9 @@ const appConfigSchema = z.object({
   browser: z
     .object({
       headless: z.boolean().default(false),
+      keepOpen: z.boolean().default(true),
     })
-    .default({ headless: false }),
+    .default({ headless: false, keepOpen: true }),
   defaultWorkflow: z.string().min(1),
 });
 
@@ -153,8 +154,16 @@ function parseDotEnv(contents: string): Record<string, string> {
 
 export async function loadEnv(rootDir: string): Promise<Record<string, string>> {
   const envPath = path.join(rootDir, ".env");
-  const contents = await readFile(envPath, "utf8");
-  return parseDotEnv(contents);
+  try {
+    const contents = await readFile(envPath, "utf8");
+    return parseDotEnv(contents);
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return {};
+    }
+
+    throw error;
+  }
 }
 
 async function loadYamlFile<T>(filePath: string, schema: z.ZodType<T>): Promise<T> {

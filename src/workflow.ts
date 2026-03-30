@@ -130,12 +130,13 @@ async function exportSubscriptionDetail(
     ? resolvedOutputPath
     : path.join(rootDir, resolvedOutputPath);
 
-  const subscriptionDetail = await page.evaluate(
-    (fields) => {
-      const normalize = (value: string | null | undefined): string =>
-        (value ?? "").replace(/\s+/g, " ").trim();
+  const subscriptionDetail = await page.evaluate(`
+    (() => {
+      const fields = ${JSON.stringify(SUBSCRIPTION_DETAIL_FIELDS)};
 
-      const readFieldValue = (container: Element | null): string | null => {
+      const normalize = (value) => (value ?? "").replace(/\\s+/g, " ").trim();
+
+      const readFieldValue = (container) => {
         if (!container) {
           return null;
         }
@@ -183,7 +184,7 @@ async function exportSubscriptionDetail(
         return text.length > 0 ? text : null;
       };
 
-      const readLabeledValue = (labelText: string): string | null => {
+      const readLabeledValue = (labelText) => {
         const normalizedLabel = labelText.replace(/:$/, "");
         const labels = Array.from(document.querySelectorAll("label"));
         const label = labels.find((candidate) => normalize(candidate.textContent).replace(/:$/, "") === normalizedLabel);
@@ -199,7 +200,7 @@ async function exportSubscriptionDetail(
         return null;
       };
 
-      const readHeaderMetadata = (): Record<string, string | null> => {
+      const readHeaderMetadata = () => {
         const titleInputs = Array.from(document.querySelectorAll(".titleInput")).map((element) =>
           normalize(element.textContent),
         );
@@ -216,7 +217,7 @@ async function exportSubscriptionDetail(
       const sections = Object.fromEntries(
         Object.entries(fields).map(([sectionName, labels]) => {
           const entries = labels
-            .map((label) => [label, readLabeledValue(label)] as const)
+            .map((label) => [label, readLabeledValue(label)])
             .filter(([, value]) => value !== null);
           return [sectionName, Object.fromEntries(entries)];
         }),
@@ -228,9 +229,8 @@ async function exportSubscriptionDetail(
         ...readHeaderMetadata(),
         sections,
       };
-    },
-    SUBSCRIPTION_DETAIL_FIELDS,
-  );
+    })()
+  `);
 
   await mkdir(path.dirname(destinationPath), { recursive: true });
   await writeFile(destinationPath, `${JSON.stringify(subscriptionDetail, null, 2)}\n`, "utf8");
