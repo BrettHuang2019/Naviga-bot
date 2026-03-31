@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
@@ -11,6 +11,7 @@ import {
   loadPageDefinitions,
   loadWorkflowDefinitions,
 } from "../../src/naviga-workflows/index.js";
+import { processOcrPayload } from "../../src/worker/index.js";
 
 function parseCliEnvOverrides(args: string[]): Record<string, string> {
   return args.reduce<Record<string, string>>((overrides, arg) => {
@@ -34,6 +35,35 @@ function parseCliEnvOverrides(args: string[]): Record<string, string> {
     overrides[key] = value;
     return overrides;
   }, {});
+}
+
+function parseCliArgs(args: string[]): {
+  selectedWorkflowId?: string;
+  ocrFilePath?: string;
+  envOverrides: Record<string, string>;
+} {
+  let selectedWorkflowId: string | undefined;
+  let ocrFilePath: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--ocr-file") {
+      ocrFilePath = args[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (!arg.startsWith("--") && !selectedWorkflowId) {
+      selectedWorkflowId = arg;
+    }
+  }
+
+  return {
+    selectedWorkflowId,
+    ocrFilePath,
+    envOverrides: parseCliEnvOverrides(args),
+  };
 }
 
 async function fileExists(targetPath: string): Promise<boolean> {
@@ -62,11 +92,7 @@ async function maybeRunRenewalVerification(rootDir: string): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
-  const rootDir = process.cwd();
-  const cliArgs = process.argv.slice(2);
-  const selectedWorkflowId = cliArgs.find((arg) => !arg.startsWith("--"));
-  const envOverrides = parseCliEnvOverrides(cliArgs);
+async function runWorkflowCli(rootDir: string, selectedWorkflowId: string | undefined, envOverrides: Record<string, string>): Promise<void> {
   const fileEnv = await loadEnv(rootDir);
   const env = {
     ...fileEnv,
@@ -76,6 +102,10 @@ async function main(): Promise<void> {
   const workflows = await loadWorkflowDefinitions(rootDir);
   const pages = await loadPageDefinitions(rootDir);
   const workflowId = selectedWorkflowId ?? appConfig.defaultWorkflow;
+
+  if (!env.NAVIGA_SUBSCRIPTION_OUTPUT_PATH) {
+    env.NAVIGA_SUBSCRIPTION_OUTPUT_PATH = path.join(rootDir, "artifacts", "json", "subscription-detail.json");
+  }
 
   const browser = await chromium.launch({
     headless: appConfig.browser.headless,
@@ -142,6 +172,28 @@ async function main(): Promise<void> {
   }
 
   await shutdown("workflow-complete");
+}
+
+async function main(): Promise<void> {
+  const rootDir = process.cwd();
+  const { selectedWorkflowId, ocrFilePath, envOverrides } = parseCliArgs(process.argv.slice(2));
+
+  if (ocrFilePath) {
+    const appConfig = await loadAppConfig(rootDir);
+    const payload = JSON.parse(await readFile(ocrFilePath, "utf8"));
+    const storedCase = await processOcrPayload(payload, {
+      rootDir,
+      workflowId: selectedWorkflowId ?? appConfig.defaultWorkflow,
+      persistOcrArtifact: false,
+    });
+
+    console.log(`Stored case -> ${storedCase.paths.caseFile}`);
+    console.log(`Subscriber client number: ${storedCase.subscriberClientNumber ?? "<missing>"}`);
+    console.log(`Recommendation: ${storedCase.verification.recommendation}`);
+    return;
+  }
+
+  await runWorkflowCli(rootDir, selectedWorkflowId, envOverrides);
 }
 
 main().catch((error: unknown) => {

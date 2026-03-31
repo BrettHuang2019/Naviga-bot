@@ -1,7 +1,9 @@
 import express, { Router, type Request, type Response } from "express";
 import process from "node:process";
 import { loadEnv } from "../../src/config/env.js";
+import { extractCoupon } from "../../src/comparison/index.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
+import { processOcrPayload } from "../../src/worker/index.js";
 
 type SharePointEnv = {
   POWER_AUTOMATE_WEBHOOK_URL?: string;
@@ -12,13 +14,22 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
 
   router.post("/intake", async (request: Request, response: Response) => {
     try {
-      const artifactPath = await saveOcrArtifact(request.body);
+      const ocrText = typeof request.body?.ocrText === "string" ? request.body.ocrText : "";
+      const { subscriberClientNumber } = ocrText ? extractCoupon("", ocrText) : { subscriberClientNumber: null };
+      const artifactPath = await saveOcrArtifact(request.body, subscriberClientNumber);
+      const storedCase = await processOcrPayload(request.body, {
+        persistOcrArtifact: false,
+      });
 
       console.log("Received SharePoint OCR intake payload:");
       console.dir(request.body, { depth: null });
       console.log(`Saved OCR artifact to ${artifactPath}`);
+      console.log(`Stored case at ${storedCase.paths.caseFile}`);
 
-      response.sendStatus(200);
+      response.status(200).json({
+        artifactPath,
+        case: storedCase,
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
 

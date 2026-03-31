@@ -4,5 +4,6 @@ playwright/.auth/
 *.log
 artifacts/json/
 artifacts/ocr/
+artifacts/cases/
 artifacts/*.err
 artifacts/*.log

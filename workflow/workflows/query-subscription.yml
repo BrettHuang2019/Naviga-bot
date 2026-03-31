@@ -61,4 +61,4 @@ steps:
   - type: waitForUrl
     urlIncludes: /circ/subscription/detail/
   - type: exportSubscriptionDetail
-    outputPath: artifacts/json/subscription-detail.json
+    outputPath: "env:NAVIGA_SUBSCRIPTION_OUTPUT_PATH"

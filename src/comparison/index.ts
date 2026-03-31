@@ -13,11 +13,8 @@ export type SubscriptionDetail = {
 };
 
 export type OcrPayload = {
-  responsev2?: {
-    predictionOutput?: {
-      fullText?: string;
-    };
-  };
+  ocrText: string;
+  imageLink?: string;
 };
 
 export type CouponOption = {
@@ -252,7 +249,11 @@ export function extractCoupon(file: string, fullText: string): CouponExtraction 
   const subscriberClientNumber =
     firstMatch(fullText, /Pour l'abonnement de\s*:?.*?no\s+de\s+client\s*[:#]?\s*(\d{4,})/i) ??
     firstMatch(fullText, /Pour l'abonnement de\s*:?\s*(\d{4,})\s+[^\n]+/i) ??
-    firstMatch(fullText, /Renouv\.\s*client\s*:\s*(\d{4,})/i);
+    firstMatch(fullText, /Renouv\.\s*client\s*:\s*(\d{4,})/i) ??
+    firstMatch(fullText, /No\s+Client\s*#\s*(\d{4,})/i) ??
+    firstMatch(fullText, /\b[A-Z]{3,4}\s+(\d{4,})\s+\d{2}\/\d{2}\/\d{4}/i) ??
+    firstMatch(fullText, /#\s*CLIENT\s*[:#]?\s*(\d{4,})/i) ??
+    firstMatch(fullText, /#\s*(\d{4,})/i);
   const subscriberName = (() => {
     if (!subscriberLine) {
       return null;
@@ -268,8 +269,12 @@ export function extractCoupon(file: string, fullText: string): CouponExtraction 
   })();
 
   const billToNameId =
-    firstMatch(fullText, /\b[A-Z]{3}\s*#CLIENT\s*[:#]?\s*(\d{4,})/i) ??
-    firstMatch(fullText, /\b#\s*(\d{4,})\s+\d{2}\/\d{2}\/\d{4}/i);
+    firstMatch(fullText, /\b[A-Z]{3}\s*#\s*CLIENT\s*[:#]?\s*(\d{4,})/i) ??
+    firstMatch(fullText, /\b#\s*(\d{4,})\s+\d{2}\/\d{2}\/\d{4}/i) ??
+    firstMatch(fullText, /\b[A-Z]{3,4}\s+(\d{4,})\s+\d{2}\/\d{2}\/\d{4}/i) ??
+    firstMatch(fullText, /No\s+Client\s*#\s*(\d{4,})/i) ??
+    firstMatch(fullText, /#\s*CLIENT\s*[:#]?\s*(\d{4,})/i) ??
+    firstMatch(fullText, /#\s*(\d{4,})/i);
 
   const offerCode = firstMatch(fullText, /\b([A-Z]{3}\d{4}AV[0-9A-Z]+)\b/);
   const renewalCampaignCode = firstMatch(fullText, /\b([A-Z]{3,4}LERE\d{2})\b/);

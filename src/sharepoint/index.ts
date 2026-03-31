@@ -15,14 +15,14 @@ type PowerAutomateResult = {
   bodyText: string;
 };
 
-function createOcrArtifactFileName(date: Date): string {
+function createOcrArtifactFileName(date: Date, clientNumber?: string | null): string {
   const isoTimestamp = date.toISOString().replaceAll(":", "-");
-  return `ocr-${isoTimestamp}.json`;
+  return clientNumber ? `ocr-${isoTimestamp}_${clientNumber}.json` : `ocr-${isoTimestamp}.json`;
 }
 
-export async function saveOcrArtifact(payload: unknown): Promise<string> {
+export async function saveOcrArtifact(payload: unknown, clientNumber?: string | null): Promise<string> {
   const artifactsDir = path.join(process.cwd(), "artifacts", "ocr");
-  const artifactName = createOcrArtifactFileName(new Date());
+  const artifactName = createOcrArtifactFileName(new Date(), clientNumber);
   const artifactPath = path.join(artifactsDir, artifactName);
 
   await mkdir(artifactsDir, { recursive: true });
