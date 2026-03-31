@@ -1,13 +1,375 @@
 import express, { Router, type Request, type Response } from "express";
+import fs from "node:fs/promises";
+import path from "node:path";
 import process from "node:process";
 import { loadEnv } from "../../src/config/env.js";
 import { extractCoupon } from "../../src/comparison/index.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
-import { processOcrPayload } from "../../src/worker/index.js";
+import { processOcrPayload, runBatchWorkflow } from "../../src/worker/index.js";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type SharePointEnv = {
   POWER_AUTOMATE_WEBHOOK_URL?: string;
 };
+
+type CheckRow = {
+  field: string;
+  expected: string | null;
+  actual: string | null;
+  status: "match" | "mismatch" | "missing" | "partial";
+  weight: number;
+  notes?: string;
+};
+
+type StoredCase = {
+  id: string;
+  createdAt: string;
+  subscriberClientNumber: string;
+  imageLink?: string;
+  ocrExtraction: {
+    productName: string | null;
+    subscriberName: string | null;
+    subscriberClientNumber: string | null;
+    billToNameId: string | null;
+    payerName: string | null;
+    payerAddress: string | null;
+    offerCode: string | null;
+    paymentAmount: number | null;
+    copies: string | null;
+    options: { raw: string; years: number; issues: number; amount: number }[];
+    selectedOption: null | { years: number; issues: number; amount: number };
+    rawTextPreview: string;
+  };
+  subscription: {
+    clientNumber: string;
+    subscriberName: string;
+    productName: string;
+    billToName: string;
+    billToNameId: string;
+    renewalName: string;
+    totalAmount: number;
+    renewalTerm: string;
+    term: string;
+  };
+  verification: {
+    bestCandidate: {
+      score: number;
+      checks: CheckRow[];
+    };
+    recommendation: string;
+  };
+};
+
+type Decision = {
+  status: "approved" | "flagged";
+  decidedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function readJson<T>(filePath: string): Promise<T> {
+  const raw = await fs.readFile(filePath, "utf8");
+  return JSON.parse(raw) as T;
+}
+
+async function readJsonOrNull<T>(filePath: string): Promise<T | null> {
+  try {
+    return await readJson<T>(filePath);
+  } catch {
+    return null;
+  }
+}
+
+function fmt(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '<span class="field-value null">—</span>';
+  return `<span class="field-value">${esc(String(value))}</span>`;
+}
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function fieldRow(label: string, value: string | number | null | undefined): string {
+  return `<div class="field-row"><span class="field-label">${esc(label)}</span>${fmt(value)}</div>`;
+}
+
+function statusBadge(status: string): string {
+  return `<span class="status-badge ${esc(status)}">${esc(status)}</span>`;
+}
+
+function layout(title: string, breadcrumb: string, body: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>${esc(title)} — Naviga Review</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Naviga Review</h1>
+    ${breadcrumb}
+  </header>
+  <div class="container">
+    ${body}
+  </div>
+</body>
+</html>`;
+}
+
+// ---------------------------------------------------------------------------
+// HTML templates
+// ---------------------------------------------------------------------------
+
+function caseListHtml(rows: { c: StoredCase; decision: Decision | null }[]): string {
+  const tableRows = rows.map(({ c, decision }) => {
+    const status = decision?.status ?? "pending";
+    const score = c.verification.bestCandidate.score;
+    return `<tr>
+      <td><a href="/cases/${esc(c.id)}">${esc(c.id)}</a></td>
+      <td>${esc(new Date(c.createdAt).toLocaleString())}</td>
+      <td>${esc(c.subscription.subscriberName)}</td>
+      <td>${esc(c.subscription.productName)}</td>
+      <td>${score}</td>
+      <td>${statusBadge(status)}</td>
+    </tr>`;
+  }).join("\n");
+
+  const body = `
+    <h2 class="page-title">Cases</h2>
+    <table class="cases-table">
+      <thead>
+        <tr>
+          <th>Case ID</th><th>Created</th><th>Subscriber</th><th>Product</th><th>Score</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+  return layout("Cases", "", body);
+}
+
+function decisionFragment(status: "approved" | "flagged"): string {
+  return `<span class="decision-status ${esc(status)}">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</span>`;
+}
+
+function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
+  const ocr = c.ocrExtraction;
+  const sub = c.subscription;
+  const checks = c.verification.bestCandidate.checks;
+  const score = c.verification.bestCandidate.score;
+
+  // --- Coupon column ---
+  const optionsHtml = ocr.options.length
+    ? `<ul class="options-list">${ocr.options.map(o => {
+        const selected = ocr.selectedOption && (o as unknown as Record<string, unknown>).amount === (ocr.selectedOption as unknown as Record<string, unknown>).amount;
+        return `<li class="${selected ? "selected" : ""}">${esc(o.raw)}</li>`;
+      }).join("")}</ul>`
+    : "";
+
+  const imageHtml = c.imageLink
+    ? `<div class="coupon-image-wrap">
+        <a href="${esc(c.imageLink)}" target="_blank" rel="noopener">Open coupon image ↗</a>
+       </div>`
+    : "";
+
+  const rawTextHtml = ocr.rawTextPreview
+    ? `<details class="raw-text-wrap">
+        <summary>Raw OCR text</summary>
+        <pre class="raw-text-content">${esc(ocr.rawTextPreview.replace(/\s*\|\s*/g, "\n"))}</pre>
+       </details>`
+    : "";
+
+  const couponCol = `
+    <div class="column-card">
+      <div class="column-header coupon">Coupon (OCR)</div>
+      <div class="column-body">
+        ${fieldRow("Subscriber name", ocr.subscriberName)}
+        ${fieldRow("Client number", ocr.subscriberClientNumber)}
+        ${fieldRow("Bill-to name ID", ocr.billToNameId)}
+        ${fieldRow("Payer name", ocr.payerName)}
+        ${fieldRow("Product name", ocr.productName)}
+        ${fieldRow("Offer code", ocr.offerCode)}
+        ${fieldRow("Payment amount", ocr.paymentAmount !== null ? `$${ocr.paymentAmount.toFixed(2)}` : null)}
+        ${fieldRow("Copies", ocr.copies)}
+        ${optionsHtml ? `<div class="field-row"><span class="field-label">Options</span>${optionsHtml}</div>` : ""}
+        ${imageHtml}
+        ${rawTextHtml}
+      </div>
+    </div>`;
+
+  // --- Naviga column ---
+  const navigaCol = `
+    <div class="column-card">
+      <div class="column-header naviga">Naviga</div>
+      <div class="column-body">
+        ${fieldRow("Subscriber name", sub.subscriberName)}
+        ${fieldRow("Client number", sub.clientNumber)}
+        ${fieldRow("Product", sub.productName)}
+        ${fieldRow("Bill-to name", sub.billToName)}
+        ${fieldRow("Bill-to name ID", sub.billToNameId)}
+        ${fieldRow("Renewal name", sub.renewalName)}
+        ${fieldRow("Total amount", `$${sub.totalAmount.toFixed(2)}`)}
+        ${fieldRow("Renewal term", `${sub.renewalTerm} issues`)}
+        ${fieldRow("Current term", `${sub.term} issues`)}
+      </div>
+    </div>`;
+
+  // --- Checks column ---
+  const checkRows = checks.map(ch => {
+    const badge = `<span class="check-badge ${esc(ch.status)}">${esc(ch.status)}</span>`;
+    const vals = `<div class="check-values">exp: ${esc(String(ch.expected ?? "—"))} / got: ${esc(String(ch.actual ?? "—"))}</div>`;
+    const notes = ch.notes ? `<div class="check-notes">${esc(ch.notes)}</div>` : "";
+    return `<div class="check-row">
+      <div>
+        <div class="check-field">${esc(ch.field)}</div>
+        ${vals}
+        ${notes}
+      </div>
+      ${badge}
+    </div>`;
+  }).join("");
+
+  const checksCol = `
+    <div class="column-card">
+      <div class="column-header checks">Checks</div>
+      <div class="column-body">
+        <div class="score-bar">
+          <span class="score-number">${score}</span>
+          <span class="score-label">verification score</span>
+        </div>
+        ${checkRows}
+      </div>
+    </div>`;
+
+  // --- Decision bar ---
+  const decisionHtml = decision
+    ? decisionFragment(decision.status)
+    : `<button class="btn btn-approve"
+          hx-post="/cases/${esc(c.id)}/decision"
+          hx-vals='{"status":"approved"}'
+          hx-target="#decision-area"
+          hx-swap="innerHTML">Approve</button>
+       <button class="btn btn-flag"
+          hx-post="/cases/${esc(c.id)}/decision"
+          hx-vals='{"status":"flagged"}'
+          hx-target="#decision-area"
+          hx-swap="innerHTML">Flag</button>`;
+
+  const body = `
+    <div class="case-header">
+      <div>
+        <div class="case-id">${esc(c.id)}</div>
+        <div class="case-created">${esc(new Date(c.createdAt).toLocaleString())}</div>
+      </div>
+      <div class="recommendation-box">${esc(c.verification.recommendation)}</div>
+    </div>
+    <div class="case-columns">
+      ${couponCol}
+      ${navigaCol}
+      ${checksCol}
+    </div>
+    <div class="decision-section">
+      <span class="decision-label">Decision:</span>
+      <div id="decision-area">${decisionHtml}</div>
+    </div>`;
+
+  const breadcrumb = `<a href="/">← All cases</a>`;
+  return layout(c.id, breadcrumb, body);
+}
+
+// ---------------------------------------------------------------------------
+// Review router
+// ---------------------------------------------------------------------------
+
+function createReviewRouter(rootDir: string): Router {
+  const casesDir = path.join(rootDir, "artifacts", "cases");
+  const router = Router();
+
+  // GET / — case list
+  router.get("/", async (_req: Request, res: Response) => {
+    let entries: string[];
+    try {
+      entries = await fs.readdir(casesDir);
+    } catch {
+      entries = [];
+    }
+
+    const rows = (
+      await Promise.all(
+        entries.map(async (id) => {
+          const caseFile = path.join(casesDir, id, "case.json");
+          const decisionFile = path.join(casesDir, id, "decision.json");
+          const c = await readJsonOrNull<StoredCase>(caseFile);
+          if (!c) return null;
+          const decision = await readJsonOrNull<Decision>(decisionFile);
+          return { c, decision };
+        })
+      )
+    )
+      .filter((r): r is { c: StoredCase; decision: Decision | null } => r !== null)
+      .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt));
+
+    res.send(caseListHtml(rows));
+  });
+
+  // GET /cases/:id — case detail
+  router.get("/cases/:id", async (req: Request, res: Response) => {
+    const id = String(req.params["id"]);
+    const caseFile = path.join(casesDir, id, "case.json");
+    const decisionFile = path.join(casesDir, id, "decision.json");
+    const c = await readJsonOrNull<StoredCase>(caseFile);
+    if (!c) {
+      res.status(404).send("Case not found");
+      return;
+    }
+    const decision = await readJsonOrNull<Decision>(decisionFile);
+    res.send(caseDetailHtml(c, decision));
+  });
+
+  // POST /cases/:id/decision — HTMX decision endpoint
+  router.post("/cases/:id/decision", async (req: Request, res: Response) => {
+    const id = String(req.params["id"]);
+    const status = req.body?.status;
+    if (status !== "approved" && status !== "flagged") {
+      res.status(400).send("Invalid status");
+      return;
+    }
+    const decisionFile = path.join(casesDir, id, "decision.json");
+    const decision: Decision = { status, decidedAt: new Date().toISOString() };
+    await fs.writeFile(decisionFile, JSON.stringify(decision, null, 2), "utf8");
+    res.send(decisionFragment(status));
+
+    if (status === "approved") {
+      const caseFile = path.join(casesDir, id, "case.json");
+      const storedCase = await readJsonOrNull<{ subscriberClientNumber: string }>(caseFile);
+      if (storedCase?.subscriberClientNumber) {
+        runBatchWorkflow({ subscriberClientNumber: storedCase.subscriberClientNumber, rootDir })
+          .catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`Batch workflow failed for case ${id}: ${message}`);
+          });
+      }
+    }
+  });
+
+  return router;
+}
+
+// ---------------------------------------------------------------------------
+// SharePoint router (existing)
+// ---------------------------------------------------------------------------
 
 function createSharePointRouter(env: SharePointEnv = {}): Router {
   const router = Router();
@@ -88,6 +450,10 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
   return router;
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 async function main(): Promise<void> {
   const rootDir = process.cwd();
   const fileEnv = await loadEnv(rootDir);
@@ -105,11 +471,15 @@ async function main(): Promise<void> {
   const app = express();
 
   app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.static("apps/web/public"));
   app.use("/api/sharepoint", createSharePointRouter(env));
+  app.use("/", createReviewRouter(rootDir));
 
   app.listen(port, () => {
     console.log(`Web server listening on port ${port}`);
-    console.log(`SharePoint routes available at http://localhost:${port}/api/sharepoint`);
+    console.log(`Review UI:        http://localhost:${port}/`);
+    console.log(`SharePoint API:   http://localhost:${port}/api/sharepoint`);
   });
 }
 

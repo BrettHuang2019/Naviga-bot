@@ -25,6 +25,7 @@ export type StoredCase = {
   id: string;
   createdAt: string;
   subscriberClientNumber: string | null;
+  imageLink: string | null;
   workflowId: string;
   paths: {
     root: string;
@@ -73,6 +74,16 @@ async function runWorkflowForSubscriber(params: {
     NAVIGA_QUERY: subscriberClientNumber,
     NAVIGA_SUBSCRIPTION_OUTPUT_PATH: subscriptionDetailPath,
   };
+
+  await runBrowserWorkflow({ rootDir, workflowId, env });
+}
+
+async function runBrowserWorkflow(params: {
+  rootDir: string;
+  workflowId: string;
+  env: Record<string, string>;
+}): Promise<void> {
+  const { rootDir, workflowId, env } = params;
   const appConfig = await loadAppConfig(rootDir);
   const workflows = await loadWorkflowDefinitions(rootDir);
   const pages = await loadPageDefinitions(rootDir);
@@ -116,6 +127,19 @@ async function runWorkflowForSubscriber(params: {
   } finally {
     await browser.close().catch(() => undefined);
   }
+}
+
+export async function runBatchWorkflow(params: {
+  subscriberClientNumber: string;
+  rootDir?: string;
+}): Promise<void> {
+  const rootDir = params.rootDir ?? process.cwd();
+  const fileEnv = await loadEnv(rootDir);
+  const env = {
+    ...fileEnv,
+    NAVIGA_QUERY: params.subscriberClientNumber,
+  };
+  await runBrowserWorkflow({ rootDir, workflowId: "add-subscription-to-batch", env });
 }
 
 function buildVerificationReport(params: {
@@ -210,6 +234,7 @@ export async function processOcrPayload(
     id: caseId,
     createdAt: verificationReport.generatedAt,
     subscriberClientNumber: ocrExtraction.subscriberClientNumber,
+    imageLink: typeof payload.imageLink === "string" ? payload.imageLink : null,
     workflowId,
     paths: {
       root: paths.caseRoot,
