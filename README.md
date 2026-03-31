@@ -5,7 +5,7 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 ## Usage
 
 1. Copy `.env.example` to `.env` if you want local defaults.
-2. Set stable config in `.env` or your shell environment: `ENTRY_URL`, `NAVIGA_USERNAME`, and `NAVIGA_PASSWORD`.
+2. Set stable config in `.env` or your shell environment: `ENTRY_URL`, `NAVIGA_USERNAME`, `NAVIGA_PASSWORD`, and `POWER_AUTOMATE_WEBHOOK_URL` when testing SharePoint callbacks.
 3. Run `npm run dev`.
 4. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
 
@@ -17,6 +17,8 @@ npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621
 ```
 
 The app config is `workflow/app.yml`. It selects browser settings, whether the browser stays open after the workflow, and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
+
+If `artifacts/json/subscription-detail.json` and `artifacts/ocr/` are both present, the worker also writes `artifacts/json/renewal-verification-report.json` after the browser workflow finishes.
 
 ## Workflow structure
 

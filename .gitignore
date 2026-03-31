@@ -3,5 +3,6 @@ node_modules/
 playwright/.auth/
 *.log
 artifacts/json/
+artifacts/ocr/
 artifacts/*.err
 artifacts/*.log

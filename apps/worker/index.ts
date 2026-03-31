@@ -1,6 +1,8 @@
+import { access } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
+import { generateRenewalVerificationReport, getDefaultRenewalVerificationPaths } from "../../src/comparison/report.js";
 import { loadEnv } from "../../src/config/env.js";
 import {
   createDomSnapshotRecorder,
@@ -32,6 +34,32 @@ function parseCliEnvOverrides(args: string[]): Record<string, string> {
     overrides[key] = value;
     return overrides;
   }, {});
+}
+
+async function fileExists(targetPath: string): Promise<boolean> {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function maybeRunRenewalVerification(rootDir: string): Promise<void> {
+  const paths = getDefaultRenewalVerificationPaths(rootDir);
+  const hasSubscriptionDetail = await fileExists(paths.subscriptionDetailPath);
+  const hasOcrDirectory = await fileExists(paths.ocrDirectoryPath);
+
+  if (!hasSubscriptionDetail || !hasOcrDirectory) {
+    return;
+  }
+
+  const report = await generateRenewalVerificationReport(paths);
+  console.log(`Wrote renewal verification report -> ${paths.outputPath}`);
+  if (report.bestCandidate) {
+    console.log(`Best candidate score: ${report.bestCandidate.score}`);
+    console.log(`Best candidate file: ${report.bestCandidate.file}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -105,6 +133,9 @@ async function main(): Promise<void> {
   if (Object.keys(envOverrides).length > 0) {
     console.log(`Applied CLI env overrides: ${Object.keys(envOverrides).join(", ")}`);
   }
+
+  await maybeRunRenewalVerification(rootDir);
+
   if (appConfig.browser.keepOpen) {
     console.log("Browser remains open. Press Ctrl+C in this terminal to stop the process.");
     await new Promise(() => {});
