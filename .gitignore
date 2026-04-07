@@ -7,3 +7,5 @@ artifacts/ocr/
 artifacts/cases/
 artifacts/*.err
 artifacts/*.log
+cloudflare/*.json
+cloudflare/config.yml

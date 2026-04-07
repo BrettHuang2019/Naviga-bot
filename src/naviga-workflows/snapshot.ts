@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import type { Frame, Page } from "playwright";
@@ -23,6 +23,7 @@ type PageSnapshot = {
 };
 
 const EMPTY_MANIFEST: SnapshotManifest = { pages: {} };
+const IGNORED_QUERY_PARAMETERS = new Set(["a_module"]);
 const DOM_SNAPSHOT_EVALUATOR = `
   (() => {
     const allowedAttributes = new Set([
@@ -90,8 +91,49 @@ const DOM_SNAPSHOT_EVALUATOR = `
 
 function normalizeUrl(url: string): string {
   const parsedUrl = new URL(url);
+  parsedUrl.hostname = parsedUrl.hostname.toLowerCase();
+  parsedUrl.pathname = parsedUrl.pathname
+    .split("/")
+    .map((segment) => segment.toLowerCase())
+    .join("/")
+    .replace(/\/{2,}/g, "/");
+  if (parsedUrl.pathname.length > 1) {
+    parsedUrl.pathname = parsedUrl.pathname.replace(/\/+$/, "");
+  }
+
+  const normalizedParams = [...parsedUrl.searchParams.entries()]
+    .filter(([key]) => !IGNORED_QUERY_PARAMETERS.has(key.toLowerCase()))
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue);
+      }
+
+      return leftKey.localeCompare(rightKey);
+    });
+
+  parsedUrl.search = "";
+  for (const [key, value] of normalizedParams) {
+    parsedUrl.searchParams.append(key, value);
+  }
   parsedUrl.hash = "";
   return parsedUrl.toString();
+}
+
+function isDynamicPathSegment(segment: string): boolean {
+  return /^\d+$/.test(segment) || /^[0-9a-f]{8,}$/i.test(segment);
+}
+
+function toTemplateKey(url: string): string {
+  const parsedUrl = new URL(normalizeUrl(url));
+  const templatePath = parsedUrl.pathname
+    .split("/")
+    .map((segment) => (isDynamicPathSegment(segment) ? ":id" : segment))
+    .join("/");
+
+  const queryKeys = [...new Set([...parsedUrl.searchParams.keys()])].sort((leftKey, rightKey) => leftKey.localeCompare(rightKey));
+  const templateSearch = queryKeys.length > 0 ? `?${queryKeys.join("&")}` : "";
+
+  return `${parsedUrl.origin}${templatePath}${templateSearch}`;
 }
 
 function toSlug(url: string): string {
@@ -115,6 +157,44 @@ async function readManifest(manifestPath: string): Promise<SnapshotManifest> {
   }
 }
 
+async function dedupeManifest(snapshotDir: string, manifestPath: string, manifest: SnapshotManifest): Promise<SnapshotManifest> {
+  const canonicalPages: Record<string, string> = {};
+  const duplicateFiles = new Set<string>();
+
+  for (const [storedUrl, fileName] of Object.entries(manifest.pages)) {
+    const templateKey = toTemplateKey(storedUrl);
+    const existingFileName = canonicalPages[templateKey];
+
+    if (!existingFileName) {
+      canonicalPages[templateKey] = fileName;
+      continue;
+    }
+
+    if (existingFileName !== fileName) {
+      duplicateFiles.add(fileName);
+    }
+  }
+
+  for (const fileName of duplicateFiles) {
+    const filePath = path.join(snapshotDir, fileName);
+    await unlink(filePath).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    });
+  }
+
+  const dedupedManifest: SnapshotManifest = { pages: canonicalPages };
+  const previousSerialized = JSON.stringify(manifest, null, 2);
+  const nextSerialized = JSON.stringify(dedupedManifest, null, 2);
+
+  if (previousSerialized !== nextSerialized) {
+    await writeFile(manifestPath, `${nextSerialized}\n`, "utf8");
+  }
+
+  return dedupedManifest;
+}
+
 async function collectDomSnapshot(page: Page): Promise<PageSnapshot> {
   return page.evaluate(DOM_SNAPSHOT_EVALUATOR);
 }
@@ -131,7 +211,7 @@ export async function createDomSnapshotRecorder(rootDir: string): Promise<{
 
   await mkdir(snapshotDir, { recursive: true });
 
-  const manifest = await readManifest(manifestPath);
+  const manifest = await dedupeManifest(snapshotDir, manifestPath, await readManifest(manifestPath));
   const inFlight = new Set<string>();
 
   return {
@@ -142,23 +222,24 @@ export async function createDomSnapshotRecorder(rootDir: string): Promise<{
         }
 
         const normalizedUrl = normalizeUrl(url);
-        if (manifest.pages[normalizedUrl] || inFlight.has(normalizedUrl)) {
+        const templateKey = toTemplateKey(normalizedUrl);
+        if (manifest.pages[templateKey] || inFlight.has(templateKey)) {
           return;
         }
 
-        inFlight.add(normalizedUrl);
+        inFlight.add(templateKey);
 
         try {
           const snapshot = await collectSnapshot();
-          const fileName = `${toSlug(normalizedUrl)}.json`;
+          const fileName = `${toSlug(templateKey)}.json`;
           const filePath = path.join(snapshotDir, fileName);
 
           await writeFile(filePath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-          manifest.pages[normalizedUrl] = fileName;
+          manifest.pages[templateKey] = fileName;
           await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-          console.log(`Saved DOM snapshot for ${normalizedUrl} -> ${fileName}`);
+          console.log(`Saved DOM snapshot for ${templateKey} -> ${fileName}`);
         } finally {
-          inFlight.delete(normalizedUrl);
+          inFlight.delete(templateKey);
         }
       };
 

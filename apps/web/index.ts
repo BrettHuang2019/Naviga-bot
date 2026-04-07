@@ -146,16 +146,26 @@ function caseListHtml(rows: { c: StoredCase; decision: Decision | null }[]): str
     </tr>`;
   }).join("\n");
 
+  const emptyState = rows.length === 0
+    ? `<div class="empty-state">No case history found.</div>`
+    : "";
+
   const body = `
-    <h2 class="page-title">Cases</h2>
-    <table class="cases-table">
+    <div class="page-toolbar">
+      <h2 class="page-title">Cases</h2>
+      <form method="post" action="/cases/clear" onsubmit="return confirm('Delete all case history? This cannot be undone.');">
+        <button type="submit" class="btn btn-danger">Clear history</button>
+      </form>
+    </div>
+    ${emptyState}
+    ${rows.length > 0 ? `<table class="cases-table">
       <thead>
         <tr>
           <th>Case ID</th><th>Created</th><th>Subscriber</th><th>Product</th><th>Score</th><th>Status</th>
         </tr>
       </thead>
       <tbody>${tableRows}</tbody>
-    </table>`;
+    </table>` : ""}`;
 
   return layout("Cases", "", body);
 }
@@ -322,6 +332,24 @@ function createReviewRouter(rootDir: string): Router {
       .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt));
 
     res.send(caseListHtml(rows));
+  });
+
+  router.post("/cases/clear", async (_req: Request, res: Response) => {
+    let entries: string[] = [];
+    try {
+      entries = await fs.readdir(casesDir);
+    } catch {
+      entries = [];
+    }
+
+    await Promise.all(
+      entries.map(async (entry) => {
+        const entryPath = path.join(casesDir, entry);
+        await fs.rm(entryPath, { recursive: true, force: true });
+      })
+    );
+
+    res.redirect(303, "/");
   });
 
   // GET /cases/:id — case detail

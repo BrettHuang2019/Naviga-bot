@@ -1,0 +1,7 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: C:\Documents\GitHub\Naviga-bot\cloudflare\YOUR_TUNNEL_ID.json
+
+ingress:
+  - hostname: YOUR_HOSTNAME
+    service: http://localhost:3001
+  - service: http_status:404

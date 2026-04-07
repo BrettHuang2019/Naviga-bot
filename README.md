@@ -103,3 +103,30 @@ Each page is saved the first time it is visited to `artifacts/dom/`.
 
 - `artifacts/dom/manifest.json` maps normalized URLs to snapshot files.
 - Each snapshot JSON contains the URL, page title, capture time, and a simplified DOM tree for later analysis.
+
+## Cloudflare tunnel
+
+For development, keep the tunnel config in the repo under `cloudflare/`.
+
+Setup:
+
+1. Install `cloudflared`.
+2. Copy `cloudflare/config.yml.example` to `cloudflare/config.yml`.
+3. Set `tunnel` to your tunnel UUID.
+4. Set `hostname` to the public hostname for this app.
+5. Put the tunnel credential JSON in `cloudflare/` and update `credentials-file` to its absolute Windows path.
+
+The local web server runs on `http://localhost:3001` by default, so the tunnel config targets that port.
+
+Run both together:
+
+```bash
+npm run dev:public
+```
+
+Or run them separately in two terminals:
+
+```bash
+npm run dev:web
+npm run tunnel
+```

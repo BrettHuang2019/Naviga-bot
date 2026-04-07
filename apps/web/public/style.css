@@ -22,6 +22,9 @@ body {
 .container { max-width: 1500px; margin: 0 auto; padding: 1.5rem 2rem; }
 
 .page-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+.page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.page-toolbar .page-title { margin-bottom: 0; }
+.empty-state { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; color: #6b7280; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 
 /* Case list table */
 .cases-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
@@ -95,6 +98,7 @@ body {
 .btn:hover { filter: brightness(0.92); }
 .btn-approve { background: #22c55e; color: white; }
 .btn-flag    { background: #f59e0b; color: white; }
+.btn-danger  { background: #dc2626; color: white; }
 .decision-status { font-size: 0.875rem; padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600; }
 .decision-status.approved { background: #dcfce7; color: #15803d; }
 .decision-status.flagged  { background: #fef3c7; color: #92400e; }
