@@ -6,8 +6,10 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 
 1. Copy `.env.example` to `.env` if you want local defaults.
 2. Set stable config in `.env` or your shell environment: `ENTRY_URL`, `NAVIGA_USERNAME`, `NAVIGA_PASSWORD`, and `POWER_AUTOMATE_WEBHOOK_URL` when testing SharePoint callbacks.
-3. Run `npm run dev`.
-4. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
+3. For the default shared testing setup, run `npm run dev:public`.
+4. If you only need the local review UI, run `npm run dev:web`.
+5. If you only need the workflow CLI, run `npm run dev`.
+6. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
 
 Examples:
 
@@ -51,7 +53,7 @@ steps:
 
 ## Testing workflows
 
-Run the default workflow:
+Run the workflow CLI directly:
 
 ```bash
 npm run dev
@@ -106,6 +108,15 @@ Each page is saved the first time it is visited to `artifacts/dom/`.
 
 ## Cloudflare tunnel
 
+The default entry command for shared testing is:
+
+```bash
+npm run dev:public
+```
+
+This starts the local web server and the Cloudflare tunnel together.
+The web server binds to `0.0.0.0`, so other devices on the same local network can open the printed `LAN Review UI` URL directly.
+
 For development, keep the tunnel config in the repo under `cloudflare/`.
 
 Setup:
@@ -116,7 +127,7 @@ Setup:
 4. Set `hostname` to the public hostname for this app.
 5. Put the tunnel credential JSON in `cloudflare/` and update `credentials-file` to its absolute Windows path.
 
-The local web server runs on `http://localhost:3001` by default, so the tunnel config targets that port.
+The local web server runs on port `3001` by default, with local access on `http://localhost:3001` and LAN access on your machine's local IP, so the tunnel config targets that port.
 
 Run both together:
 

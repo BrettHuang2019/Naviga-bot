@@ -1,5 +1,6 @@
 import express, { Router, type Request, type Response } from "express";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { loadEnv } from "../../src/config/env.js";
@@ -100,6 +101,22 @@ function esc(s: string): string {
 
 function fieldRow(label: string, value: string | number | null | undefined): string {
   return `<div class="field-row"><span class="field-label">${esc(label)}</span>${fmt(value)}</div>`;
+}
+
+function getLanUrls(port: number): string[] {
+  const interfaces = os.networkInterfaces();
+  const lanUrls = new Set<string>();
+
+  for (const addresses of Object.values(interfaces)) {
+    if (!addresses) continue;
+
+    for (const address of addresses) {
+      if (address.family !== "IPv4" || address.internal) continue;
+      lanUrls.add(`http://${address.address}:${port}/`);
+    }
+  }
+
+  return Array.from(lanUrls).sort();
 }
 
 function statusBadge(status: string): string {
@@ -490,6 +507,7 @@ async function main(): Promise<void> {
     ...process.env,
   };
   const portValue = env.PORT ?? "3001";
+  const host = env.HOST ?? "0.0.0.0";
   const port = Number(portValue);
 
   if (!Number.isFinite(port)) {
@@ -504,10 +522,20 @@ async function main(): Promise<void> {
   app.use("/api/sharepoint", createSharePointRouter(env));
   app.use("/", createReviewRouter(rootDir));
 
-  app.listen(port, () => {
-    console.log(`Web server listening on port ${port}`);
+  app.listen(port, host, () => {
+    console.log(`Web server listening on ${host}:${port}`);
     console.log(`Review UI:        http://localhost:${port}/`);
     console.log(`SharePoint API:   http://localhost:${port}/api/sharepoint`);
+
+    const lanUrls = getLanUrls(port);
+    if (lanUrls.length > 0) {
+      console.log(`LAN Review UI:    ${lanUrls[0]}`);
+      if (lanUrls.length > 1) {
+        for (const url of lanUrls.slice(1)) {
+          console.log(`LAN Review UI:    ${url}`);
+        }
+      }
+    }
   });
 }
 
