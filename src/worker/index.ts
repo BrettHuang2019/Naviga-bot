@@ -4,13 +4,16 @@ import process from "node:process";
 import { chromium } from "playwright";
 import {
   extractCoupon,
+  extractIncomeDocument,
+  type IncomeExtraction,
+  type ParsedOcrDocument,
   summarizeSubscription,
   verifyRenewalCandidates,
-  type CouponExtraction,
   type OcrPayload,
   type SubscriptionDetail,
   type VerificationReport,
 } from "../comparison/index.js";
+import { parseOcrPayload } from "../comparison/ocr-parser.js";
 import { loadEnv } from "../config/env.js";
 import {
   createDomSnapshotRecorder,
@@ -34,7 +37,8 @@ export type StoredCase = {
     verificationReport: string;
     caseFile: string;
   };
-  ocrExtraction: CouponExtraction;
+  incomeExtraction: IncomeExtraction;
+  ocrExtraction: IncomeExtraction["coupon"];
   subscription: VerificationReport["subscription"];
   verification: Pick<VerificationReport, "bestCandidate" | "topCandidates" | "recommendation" | "verificationStrategy">;
 };
@@ -187,7 +191,7 @@ export async function runBatchWorkflow(params: {
 
 function buildVerificationReport(params: {
   subscription: SubscriptionDetail;
-  ocrExtraction: CouponExtraction;
+  ocrExtraction: IncomeExtraction["coupon"];
   subscriptionDetailPath: string;
   ocrPayloadPath: string;
 }): VerificationReport {
@@ -210,33 +214,8 @@ export async function processOcrPayload(
   options: ProcessOcrPayloadOptions = {},
 ): Promise<StoredCase> {
   const rootDir = options.rootDir ?? process.cwd();
-
-  let parsedOcrText: unknown;
-  try {
-    parsedOcrText = JSON.parse(payload.ocrText);
-  } catch {
-    throw new Error("OCR payload ocrText is not valid JSON.");
-  }
-
-  const fullText =
-    parsedOcrText !== null &&
-    typeof parsedOcrText === "object" &&
-    "responsev2" in parsedOcrText &&
-    parsedOcrText.responsev2 !== null &&
-    typeof parsedOcrText.responsev2 === "object" &&
-    "predictionOutput" in parsedOcrText.responsev2 &&
-    parsedOcrText.responsev2.predictionOutput !== null &&
-    typeof parsedOcrText.responsev2.predictionOutput === "object" &&
-    "fullText" in parsedOcrText.responsev2.predictionOutput &&
-    typeof parsedOcrText.responsev2.predictionOutput.fullText === "string"
-      ? parsedOcrText.responsev2.predictionOutput.fullText
-      : null;
-
-  if (!fullText) {
-    throw new Error("OCR payload ocrText is missing responsev2.predictionOutput.fullText.");
-  }
-
-  const { subscriberClientNumber } = extractCoupon("", fullText);
+  const parsedDocument: ParsedOcrDocument = parseOcrPayload(payload);
+  const { subscriberClientNumber } = extractCoupon("", parsedDocument);
   if (!subscriberClientNumber) {
     throw new Error("Unable to derive the subscriber client number from the OCR payload.");
   }
@@ -251,7 +230,8 @@ export async function processOcrPayload(
     await saveOcrArtifact(payload, subscriberClientNumber);
   }
 
-  const ocrExtraction = extractCoupon(paths.ocrPayloadPath, fullText);
+  const incomeExtraction = extractIncomeDocument(paths.ocrPayloadPath, parsedDocument);
+  const ocrExtraction = incomeExtraction.coupon;
 
   const appConfig = await loadAppConfig(rootDir);
   const workflowId = options.workflowId ?? appConfig.defaultWorkflow;
@@ -289,6 +269,7 @@ export async function processOcrPayload(
       verificationReport: paths.verificationReportPath,
       caseFile: paths.caseFilePath,
     },
+    incomeExtraction,
     ocrExtraction,
     subscription: verificationReport.subscription,
     verification: {

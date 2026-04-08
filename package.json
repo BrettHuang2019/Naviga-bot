@@ -8,6 +8,7 @@
     "dev:web": "tsx apps/web/index.ts",
     "tunnel": "cloudflared --config ./cloudflare/config.yml tunnel run naviga-tunnel",
     "dev:public": "concurrently -k -n web,tunnel -c blue,green \"npm run dev:web\" \"npm run tunnel\"",
+    "test": "node --import tsx --test",
     "typecheck": "tsc --noEmit",
     "install:browsers": "playwright install chromium"
   },

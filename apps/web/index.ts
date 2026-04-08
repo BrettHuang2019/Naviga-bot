@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { loadEnv } from "../../src/config/env.js";
-import { extractCoupon } from "../../src/comparison/index.js";
+import { extractCoupon, type CheckExtraction, type CouponExtraction, type IncomeExtraction } from "../../src/comparison/index.js";
+import { parseOcrText } from "../../src/comparison/ocr-parser.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
 import { processOcrPayload, runBatchWorkflow } from "../../src/worker/index.js";
 
@@ -30,6 +31,7 @@ type StoredCase = {
   createdAt: string;
   subscriberClientNumber: string;
   imageLink?: string;
+  incomeExtraction?: IncomeExtraction;
   ocrExtraction: {
     productName: string | null;
     subscriberName: string | null;
@@ -38,10 +40,12 @@ type StoredCase = {
     payerName: string | null;
     payerAddress: string | null;
     offerCode: string | null;
+    renewalCampaignCode: string | null;
+    renewalDate: string | null;
     paymentAmount: number | null;
     copies: string | null;
-    options: { raw: string; years: number; issues: number; amount: number }[];
-    selectedOption: null | { years: number; issues: number; amount: number };
+    options: { raw: string; years: number | null; issues: number | null; amount: number | null }[];
+    selectedOption: null | { raw: string; years: number | null; issues: number | null; amount: number | null };
     rawTextPreview: string;
   };
   subscription: {
@@ -63,6 +67,26 @@ type StoredCase = {
     recommendation: string;
   };
 };
+
+function getIncomeExtraction(c: StoredCase): IncomeExtraction {
+  const coupon = c.incomeExtraction?.coupon ?? (c.ocrExtraction as CouponExtraction);
+  const check = c.incomeExtraction?.check ?? {
+    file: coupon.file,
+    checkNumber: null,
+    date: null,
+    payTo: null,
+    amountNumber: coupon.paymentAmount,
+    amountWords: null,
+    payerName: coupon.payerName,
+    payerAddress: coupon.payerAddress,
+    rawTextPreview: coupon.rawTextPreview,
+  } satisfies CheckExtraction;
+
+  return {
+    coupon,
+    check,
+  };
+}
 
 type Decision = {
   status: "approved" | "flagged";
@@ -101,6 +125,27 @@ function esc(s: string): string {
 
 function fieldRow(label: string, value: string | number | null | undefined): string {
   return `<div class="field-row"><span class="field-label">${esc(label)}</span>${fmt(value)}</div>`;
+}
+
+function formatCurrency(value: number | null | undefined): string | null {
+  return value === null || value === undefined ? null : `$${value.toFixed(2)}`;
+}
+
+function formatCheckFieldName(field: string): string {
+  const labels: Record<string, string> = {
+    subscriberClientNumber: "Client number",
+    billToNameId: "Bill-to name ID",
+    subscriberName: "Subscriber name",
+    billToOrRenewalName: "Bill-to or renewal name",
+    paymentAmount: "Payment amount",
+    renewalDate: "Renewal date",
+    productName: "Product name",
+    selectedOptionAmount: "Selected option amount",
+    selectedOptionTerm: "Selected option term",
+    payerAddress: "Payer address",
+  };
+
+  return labels[field] ?? field;
 }
 
 function getLanUrls(port: number): string[] {
@@ -192,15 +237,16 @@ function decisionFragment(status: "approved" | "flagged"): string {
 }
 
 function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
-  const ocr = c.ocrExtraction;
+  const income = getIncomeExtraction(c);
+  const coupon = income.coupon;
+  const check = income.check;
   const sub = c.subscription;
   const checks = c.verification.bestCandidate.checks;
   const score = c.verification.bestCandidate.score;
 
-  // --- Coupon column ---
-  const optionsHtml = ocr.options.length
-    ? `<ul class="options-list">${ocr.options.map(o => {
-        const selected = ocr.selectedOption && (o as unknown as Record<string, unknown>).amount === (ocr.selectedOption as unknown as Record<string, unknown>).amount;
+  const optionsHtml = coupon.options.length
+    ? `<ul class="options-list">${coupon.options.map(o => {
+        const selected = coupon.selectedOption && (o as unknown as Record<string, unknown>).amount === (coupon.selectedOption as unknown as Record<string, unknown>).amount;
         return `<li class="${selected ? "selected" : ""}">${esc(o.raw)}</li>`;
       }).join("")}</ul>`
     : "";
@@ -211,28 +257,53 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
        </div>`
     : "";
 
-  const rawTextHtml = ocr.rawTextPreview
+  const couponRawTextHtml = coupon.rawTextPreview
     ? `<details class="raw-text-wrap">
-        <summary>Raw OCR text</summary>
-        <pre class="raw-text-content">${esc(ocr.rawTextPreview.replace(/\s*\|\s*/g, "\n"))}</pre>
+        <summary>Coupon OCR text</summary>
+        <pre class="raw-text-content">${esc(coupon.rawTextPreview.replace(/\s*\|\s*/g, "\n"))}</pre>
        </details>`
     : "";
+
+  const checkRawTextHtml = check.rawTextPreview
+    ? `<details class="raw-text-wrap">
+        <summary>Check OCR text</summary>
+        <pre class="raw-text-content">${esc(check.rawTextPreview.replace(/\s*\|\s*/g, "\n"))}</pre>
+       </details>`
+    : "";
+
+  const checkCol = `
+    <div class="column-card">
+      <div class="column-header check">Check (OCR)</div>
+      <div class="column-body">
+        ${fieldRow("Check number", check.checkNumber)}
+        ${fieldRow("Date", check.date)}
+        ${fieldRow("Pay to", check.payTo)}
+        ${fieldRow("Amount", formatCurrency(check.amountNumber))}
+        ${fieldRow("Amount in words", check.amountWords)}
+        ${fieldRow("Payer name", check.payerName)}
+        ${fieldRow("Payer address", check.payerAddress)}
+        ${checkRawTextHtml}
+      </div>
+    </div>`;
 
   const couponCol = `
     <div class="column-card">
       <div class="column-header coupon">Coupon (OCR)</div>
       <div class="column-body">
-        ${fieldRow("Subscriber name", ocr.subscriberName)}
-        ${fieldRow("Client number", ocr.subscriberClientNumber)}
-        ${fieldRow("Bill-to name ID", ocr.billToNameId)}
-        ${fieldRow("Payer name", ocr.payerName)}
-        ${fieldRow("Product name", ocr.productName)}
-        ${fieldRow("Offer code", ocr.offerCode)}
-        ${fieldRow("Payment amount", ocr.paymentAmount !== null ? `$${ocr.paymentAmount.toFixed(2)}` : null)}
-        ${fieldRow("Copies", ocr.copies)}
+        ${fieldRow("Subscriber name", coupon.subscriberName)}
+        ${fieldRow("Client number", coupon.subscriberClientNumber)}
+        ${fieldRow("Client ID", coupon.billToNameId)}
+        ${fieldRow("Client name", coupon.payerName)}
+        ${fieldRow("Promo code", coupon.offerCode)}
+        ${fieldRow("Campaign code", coupon.renewalCampaignCode)}
+        ${fieldRow("Renewal date", coupon.renewalDate)}
+        ${fieldRow("Product name", coupon.productName)}
+        ${fieldRow("Option chosen", coupon.selectedOption?.raw ?? null)}
+        ${fieldRow("Price", formatCurrency(coupon.paymentAmount))}
+        ${fieldRow("Copies", coupon.copies)}
         ${optionsHtml ? `<div class="field-row"><span class="field-label">Options</span>${optionsHtml}</div>` : ""}
         ${imageHtml}
-        ${rawTextHtml}
+        ${couponRawTextHtml}
       </div>
     </div>`;
 
@@ -247,7 +318,7 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
         ${fieldRow("Bill-to name", sub.billToName)}
         ${fieldRow("Bill-to name ID", sub.billToNameId)}
         ${fieldRow("Renewal name", sub.renewalName)}
-        ${fieldRow("Total amount", `$${sub.totalAmount.toFixed(2)}`)}
+        ${fieldRow("Total amount", formatCurrency(sub.totalAmount))}
         ${fieldRow("Renewal term", `${sub.renewalTerm} issues`)}
         ${fieldRow("Current term", `${sub.term} issues`)}
       </div>
@@ -256,11 +327,11 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
   // --- Checks column ---
   const checkRows = checks.map(ch => {
     const badge = `<span class="check-badge ${esc(ch.status)}">${esc(ch.status)}</span>`;
-    const vals = `<div class="check-values">exp: ${esc(String(ch.expected ?? "—"))} / got: ${esc(String(ch.actual ?? "—"))}</div>`;
+    const vals = `<div class="check-values">Naviga: ${esc(String(ch.expected ?? "—"))} / OCR: ${esc(String(ch.actual ?? "—"))}</div>`;
     const notes = ch.notes ? `<div class="check-notes">${esc(ch.notes)}</div>` : "";
     return `<div class="check-row">
       <div>
-        <div class="check-field">${esc(ch.field)}</div>
+        <div class="check-field">${esc(formatCheckFieldName(ch.field))}</div>
         ${vals}
         ${notes}
       </div>
@@ -303,6 +374,7 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null): string {
       <div class="recommendation-box">${esc(c.verification.recommendation)}</div>
     </div>
     <div class="case-columns">
+      ${checkCol}
       ${couponCol}
       ${navigaCol}
       ${checksCol}
@@ -422,7 +494,8 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
   router.post("/intake", async (request: Request, response: Response) => {
     try {
       const ocrText = typeof request.body?.ocrText === "string" ? request.body.ocrText : "";
-      const { subscriberClientNumber } = ocrText ? extractCoupon("", ocrText) : { subscriberClientNumber: null };
+      const parsedOcr = ocrText ? parseOcrText(ocrText) : null;
+      const { subscriberClientNumber } = parsedOcr ? extractCoupon("", parsedOcr) : { subscriberClientNumber: null };
       const artifactPath = await saveOcrArtifact(request.body, subscriberClientNumber);
       const storedCase = await processOcrPayload(request.body, {
         persistOcrArtifact: false,

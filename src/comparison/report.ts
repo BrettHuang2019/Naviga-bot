@@ -34,12 +34,11 @@ export async function loadOcrExtractions(ocrDirectoryPath: string): Promise<Coup
 
   for (const file of jsonFiles) {
     const payload = JSON.parse(await readFile(file, "utf8")) as OcrPayload;
-    const fullText = payload.responsev2?.predictionOutput?.fullText;
-    if (!fullText) {
+    try {
+      extractions.push(extractCoupon(file, payload));
+    } catch {
       continue;
     }
-
-    extractions.push(extractCoupon(file, fullText));
   }
 
   return extractions;
