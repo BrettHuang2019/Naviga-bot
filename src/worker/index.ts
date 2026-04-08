@@ -45,6 +45,43 @@ type ProcessOcrPayloadOptions = {
   persistOcrArtifact?: boolean;
 };
 
+type WorkflowQueueTask<T> = {
+  label: string;
+  run: () => Promise<T>;
+};
+
+let workflowQueueTail: Promise<void> = Promise.resolve();
+let workflowQueueDepth = 0;
+
+async function enqueueWorkflowTask<T>(task: WorkflowQueueTask<T>): Promise<T> {
+  const position = workflowQueueDepth + 1;
+  workflowQueueDepth += 1;
+  console.log(`[workflow-queue] queued "${task.label}" at position ${position}`);
+
+  const waitForTurn = workflowQueueTail.catch(() => undefined);
+  let releaseQueue: () => void = () => undefined;
+
+  workflowQueueTail = new Promise<void>((resolve) => {
+    releaseQueue = resolve;
+  });
+
+  await waitForTurn;
+  console.log(`[workflow-queue] starting "${task.label}"`);
+
+  try {
+    const result = await task.run();
+    console.log(`[workflow-queue] completed "${task.label}"`);
+    return result;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[workflow-queue] failed "${task.label}": ${message}`);
+    throw error;
+  } finally {
+    workflowQueueDepth = Math.max(0, workflowQueueDepth - 1);
+    releaseQueue();
+  }
+}
+
 function createCaseId(date: Date, clientNumber?: string | null): string {
   const timestamp = date.toISOString().replaceAll(":", "-").replace(/\.\d{3}Z$/, "Z");
   return clientNumber ? `${timestamp}_${clientNumber}` : timestamp;
@@ -133,13 +170,19 @@ export async function runBatchWorkflow(params: {
   subscriberClientNumber: string;
   rootDir?: string;
 }): Promise<void> {
-  const rootDir = params.rootDir ?? process.cwd();
-  const fileEnv = await loadEnv(rootDir);
-  const env = {
-    ...fileEnv,
-    NAVIGA_QUERY: params.subscriberClientNumber,
-  };
-  await runBrowserWorkflow({ rootDir, workflowId: "add-subscription-to-batch", env });
+  await enqueueWorkflowTask({
+    label: `add-subscription-to-batch:${params.subscriberClientNumber}`,
+    run: async () => {
+      const rootDir = params.rootDir ?? process.cwd();
+      const fileEnv = await loadEnv(rootDir);
+      const env = {
+        ...fileEnv,
+        NAVIGA_QUERY: params.subscriberClientNumber,
+      };
+
+      await runBrowserWorkflow({ rootDir, workflowId: "add-subscription-to-batch", env });
+    },
+  });
 }
 
 function buildVerificationReport(params: {
@@ -213,11 +256,14 @@ export async function processOcrPayload(
   const appConfig = await loadAppConfig(rootDir);
   const workflowId = options.workflowId ?? appConfig.defaultWorkflow;
 
-  await runWorkflowForSubscriber({
-    rootDir,
-    workflowId,
-    subscriberClientNumber: ocrExtraction.subscriberClientNumber,
-    subscriptionDetailPath: paths.subscriptionDetailPath,
+  await enqueueWorkflowTask({
+    label: `${workflowId}:${subscriberClientNumber}`,
+    run: async () => runWorkflowForSubscriber({
+      rootDir,
+      workflowId,
+      subscriberClientNumber,
+      subscriptionDetailPath: paths.subscriptionDetailPath,
+    }),
   });
 
   const subscription = JSON.parse(await readFile(paths.subscriptionDetailPath, "utf8")) as SubscriptionDetail;
