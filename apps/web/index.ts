@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { loadEnv } from "../../src/config/env.js";
-import { extractCoupon, type CheckExtraction, type CouponExtraction, type IncomeExtraction } from "../../src/comparison/index.js";
+import { extractCoupon, type CheckExtraction, type CouponExtraction, type IncomeExtraction, type OcrPayload } from "../../src/comparison/index.js";
 import { parseOcrText } from "../../src/comparison/ocr-parser.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
 import { processOcrPayload, runBatchWorkflow } from "../../src/worker/index.js";
@@ -490,6 +490,21 @@ function createReviewRouter(rootDir: string): Router {
 
 function createSharePointRouter(env: SharePointEnv = {}): Router {
   const router = Router();
+  const timestampedMessage = (message: string) => `[${new Date().toISOString()}] ${message}`;
+  const runIntakeWorkflow = async (payload: OcrPayload): Promise<void> => {
+    try {
+      const storedCase = await processOcrPayload(payload, {
+        persistOcrArtifact: false,
+      });
+
+      console.log(timestampedMessage(`Stored case at ${storedCase.paths.caseFile}`));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.stack ?? error.message : String(error);
+
+      console.error(timestampedMessage("SharePoint OCR workflow failed after intake acknowledgement:"));
+      console.error(timestampedMessage(message));
+    }
+  };
 
   router.post("/intake", async (request: Request, response: Response) => {
     try {
@@ -497,24 +512,23 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
       const parsedOcr = ocrText ? parseOcrText(ocrText) : null;
       const { subscriberClientNumber } = parsedOcr ? extractCoupon("", parsedOcr) : { subscriberClientNumber: null };
       const artifactPath = await saveOcrArtifact(request.body, subscriberClientNumber);
-      const storedCase = await processOcrPayload(request.body, {
-        persistOcrArtifact: false,
-      });
 
-      console.log("Received SharePoint OCR intake payload:");
+      console.log(timestampedMessage("Received SharePoint OCR intake payload:"));
       console.dir(request.body, { depth: null });
-      console.log(`Saved OCR artifact to ${artifactPath}`);
-      console.log(`Stored case at ${storedCase.paths.caseFile}`);
+      console.log(timestampedMessage(`Saved OCR artifact to ${artifactPath}`));
 
-      response.status(200).json({
+      response.status(202).json({
         artifactPath,
-        case: storedCase,
+        accepted: true,
+        workflowQueued: true,
       });
+
+      void runIntakeWorkflow(request.body);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
 
-      console.error("Failed to save SharePoint OCR artifact:");
-      console.error(message);
+      console.error(timestampedMessage("Failed to save SharePoint OCR artifact:"));
+      console.error(timestampedMessage(message));
 
       response.status(500).json({
         error: "Failed to save OCR artifact",

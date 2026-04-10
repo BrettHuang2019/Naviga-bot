@@ -57,10 +57,14 @@ type WorkflowQueueTask<T> = {
 let workflowQueueTail: Promise<void> = Promise.resolve();
 let workflowQueueDepth = 0;
 
+function timestampedMessage(message: string): string {
+  return `[${new Date().toISOString()}] ${message}`;
+}
+
 async function enqueueWorkflowTask<T>(task: WorkflowQueueTask<T>): Promise<T> {
   const position = workflowQueueDepth + 1;
   workflowQueueDepth += 1;
-  console.log(`[workflow-queue] queued "${task.label}" at position ${position}`);
+  console.log(timestampedMessage(`[workflow-queue] queued "${task.label}" at position ${position}`));
 
   const waitForTurn = workflowQueueTail.catch(() => undefined);
   let releaseQueue: () => void = () => undefined;
@@ -70,15 +74,15 @@ async function enqueueWorkflowTask<T>(task: WorkflowQueueTask<T>): Promise<T> {
   });
 
   await waitForTurn;
-  console.log(`[workflow-queue] starting "${task.label}"`);
+  console.log(timestampedMessage(`[workflow-queue] starting "${task.label}"`));
 
   try {
     const result = await task.run();
-    console.log(`[workflow-queue] completed "${task.label}"`);
+    console.log(timestampedMessage(`[workflow-queue] completed "${task.label}"`));
     return result;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[workflow-queue] failed "${task.label}": ${message}`);
+    console.error(timestampedMessage(`[workflow-queue] failed "${task.label}": ${message}`));
     throw error;
   } finally {
     workflowQueueDepth = Math.max(0, workflowQueueDepth - 1);
