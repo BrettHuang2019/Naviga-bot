@@ -8,15 +8,16 @@
 - Bayard Jeunesse
 - Novalis  
 - Living with christ
-1. price in number = price in words.
-2. name
-3. address
+4. price in number
+5. price in words.
+6. name
+7. address
 
 # Coupon
 1. Client id 
 2. Client name 
-3. Promo code above barcode 
-4. Option chosen
+3. Promo code (usually located above barcode, contains letters and year number in middle) 
+4. Option chosen (some has 2 options, some has 1 only, some has 3)
 5. Price from chosen option
 
 # Naviga - Get info from add renewal in a test batch
@@ -37,6 +38,8 @@
 - naviga = coupon = check, if no, warning
 4. price
 - naviga = coupon = check, if no, error
+(on check)
+- price in number = price in words, if no warning.
 
 # Action:
 if no error - add to batch workflow.

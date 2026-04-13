@@ -100,7 +100,7 @@ test("extractCheck ignores coupon lines when extracting combined OCR fields", ()
 
   assert.equal(check.checkNumber, "035");
   assert.equal(check.date, "2022-11-22");
-  assert.equal(check.payTo, "Publication BLD");
+  assert.equal(check.payTo, "Publications BLD");
   assert.equal(check.amountNumber, null);
   assert.match(check.payerAddress ?? "", /20 Hoodless Court/i);
   assert.doesNotMatch(check.rawTextPreview, /JAL#CLIENT/i);
@@ -134,18 +134,21 @@ test("artifact 432688 preserves weak amount OCR without leaking coupon data into
 
   assert.equal(income.check.payTo, "Publications BLD");
   assert.equal(income.check.amountNumber, 45.04);
+  assert.equal(income.check.payerAddress, "1768 CROIS HENRI RENAUD, PREVOST, QC JOR 1TO");
   assert.equal(income.coupon.offerCode, "CUR2023AV1");
   assert.equal(income.coupon.paymentAmount, null);
   assert.equal(income.coupon.fieldMeta?.paymentAmount?.confidence, "low");
 });
 
-test("artifact 764622 prefers the explicit client number over the conflicting footer id", async () => {
+test("artifact 764622 extracts implicit cents in the payee line and prefers the explicit client number", async () => {
   const parsed = parseOcrPayload(await loadArtifact("764622"));
   const income = extractIncomeDocument("764622.json", parsed);
 
   assert.equal(income.coupon.subscriberClientNumber, "764622");
   assert.equal(income.coupon.offerCode, "PJQ2200AV1");
-  assert.equal(income.check.amountNumber, null);
+  assert.equal(income.check.payTo, "Bayard Presse Canada Inc.");
+  assert.equal(income.check.amountNumber, 45.15);
+  assert.equal(income.check.payerAddress, "1373 CORKERY RD, CARP, ONTARIO KOA1LO");
 });
 
 test("artifact 377408 follows the rule-guide anchors for payee, subscriber identity, and payer address", async () => {
@@ -157,4 +160,13 @@ test("artifact 377408 follows the rule-guide anchors for payee, subscriber ident
   assert.equal(income.check.payerAddress, null);
   assert.equal(income.coupon.subscriberClientNumber, "377408");
   assert.equal(income.coupon.subscriberName, "ELOI FALCONI");
+});
+
+test("artifact 463769 uses the top-left payer block instead of payee or bank text", async () => {
+  const parsed = parseOcrPayload(await loadArtifact("463769"));
+  const income = extractIncomeDocument("463769.json", parsed);
+
+  assert.equal(income.check.payerName, "RAYNALD CARON");
+  assert.equal(income.check.payerAddress, "279 16E AV, DOLBEAU-MISTASSINI, QC G8L 2N2");
+  assert.equal(income.check.amountWords, "quatre-vingt-six-18 / 100 DOLLARS fulgte.");
 });

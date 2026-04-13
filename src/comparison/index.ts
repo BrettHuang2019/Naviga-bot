@@ -65,6 +65,8 @@ const ACCEPTED_PAYEES = [
   "Bayard Jeunesse",
   "Novalis",
   "Living with christ",
+  "Publication BLD",
+  "Publications BLD",
 ] as const;
 
 const COUPON_ANCHOR_PATTERN =
@@ -161,21 +163,21 @@ function isLikelyAddressLine(line: string): boolean {
   return (
     /\d/.test(line) ||
     /\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b/i.test(line) ||
-    /\b(PO\s*BOX|P\.?\s*O\.?\s*BOX|RUE|ST(?:REET)?|BOULEVARD|BLVD|CHEMIN|AVE(?:NUE)?|COURT|ROAD|RD)\b/i.test(line)
+    /\b(PO\s*BOX|P\.?\s*O\.?\s*BOX|RUE|ST(?:REET)?|BOULEVARD|BLVD|CHEMIN|CROIS|CRES(?:CENT)?|AV|AVE(?:NUE)?|COURT|ROAD|RD)\b/i.test(line)
   );
 }
 
 function isStreetAddressLine(line: string): boolean {
   return (
     /\b(PO\s*BOX|P\.?\s*O\.?\s*BOX)\b/i.test(line) ||
-    (/\d/.test(line) && /\b(RUE|ST(?:REET)?|BOULEVARD|BLVD|CHEMIN|AVE(?:NUE)?|COURT|ROAD|RD|RTE|ROUTE)\b/i.test(line))
+    (/\d/.test(line) && /\b(RUE|ST(?:REET)?|BOULEVARD|BLVD|CHEMIN|CROIS|CRES(?:CENT)?|AV|AVE(?:NUE)?|COURT|ROAD|RD|RTE|ROUTE)\b/i.test(line))
   );
 }
 
 function isCityPostalLine(line: string): boolean {
   return (
     /\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b/i.test(line) ||
-    /\b(QC|ON|NB|NS|AB|BC|MB|SK|PE|NL)\b/i.test(line)
+    /\b(QC|ON|ONTARIO|QU[ÉE]BEC|NB|NS|AB|BC|MB|SK|PE|NL)\b/i.test(line)
   );
 }
 
@@ -199,6 +201,10 @@ function isIgnorableCheckLine(line: string): boolean {
 function normalizeAcceptedPayee(value: string | null): string | null {
   if (!value) {
     return null;
+  }
+
+  if (/\bPublications?\s+BLD\b/i.test(value)) {
+    return "Publications BLD";
   }
 
   const normalizedValue = normalizeForCompare(value);
@@ -235,6 +241,7 @@ function cleanupPayeeCandidate(text: string): string {
       .replace(/^(?:PAYEZ(?:\s*[ÀA])?|PAY TO(?: THE(?: ORDER OF)?)?|L'ORDRE DE|A L'ORDRE DE|À L'ORDRE DE)\s*[:.-]?\s*/i, "")
       .replace(/^[^\p{L}\d]+/u, "")
       .replace(/\s+\$?\s*\d{1,3}(?:[.,]\s*\d{2})\s*\$?\s*$/u, "")
+      .replace(/\s+\$\s*\d{3,5}\s*$/u, "")
       .replace(/\s+\d{1,3}\s*\/\s*100(?:\s+DOLLARS?)?\s*$/iu, "")
       .replace(/\s+DOLLARS?\s*$/iu, ""),
   );
@@ -256,11 +263,17 @@ function isPayeeCandidateText(text: string): boolean {
 
 function extractMoneyCandidate(text: string): string | null {
   const match = text.match(/\$?\s*(\d{1,3})\s*[.,]\s*(\d{2})\s*\$?/);
-  if (!match) {
-    return null;
+  if (match) {
+    return `${match[1]}.${match[2]}`;
   }
 
-  return `${match[1]}.${match[2]}`;
+  const implicitCents = text.match(/\$\s*(\d{3,5})\b/);
+  if (implicitCents) {
+    const digits = implicitCents[1];
+    return `${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  }
+
+  return null;
 }
 
 function normalizeCheckDateText(text: string): string | null {
@@ -280,7 +293,7 @@ function normalizeCheckDateText(text: string): string | null {
 function extractCheckNumber(lines: OcrLine[], checkText: string): { value: string | null; meta?: ExtractionMeta } {
   const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
   const candidates = lines
-    .filter((line) => isWithinBand(line.top, 0, 0.24) && (!useHorizontalGeometry || line.left >= 0.6))
+    .filter((line) => isWithinBand(line.top, 0, 0.24) && (!useHorizontalGeometry || line.left >= 0.58))
     .map((line) => ({ line, digits: line.text.replace(/\s+/g, "") }))
     .filter(({ digits }) => /^\d{3,6}$/.test(digits))
     .sort((left, right) => (useHorizontalGeometry ? right.line.left - left.line.left : left.line.top - right.line.top) || left.line.top - right.line.top);
@@ -404,8 +417,27 @@ function extractPayTo(lines: OcrLine[]): { value: string | null; meta?: Extracti
 
 function extractCheckAmountNumeric(lines: OcrLine[]): { value: number | null; meta?: ExtractionMeta } {
   const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
+  const payeeAnchor = lines.find(
+    (line) =>
+      isWithinBand(line.top, 0.22, 0.33) &&
+      (/\bPAYEZ\b/i.test(line.text) || /\bPAY TO\b/i.test(line.text) || /^L'ORDRE DE$/i.test(line.text)),
+  );
   const candidates = lines
-    .filter((line) => isWithinBand(line.top, 0.22, 0.34) && (!useHorizontalGeometry || line.left >= 0.55))
+    .filter((line) => {
+      if (!isWithinBand(line.top, 0.22, 0.34)) {
+        return false;
+      }
+
+      if (!useHorizontalGeometry || line.left >= 0.55) {
+        return true;
+      }
+
+      return (
+        /\$/.test(line.text) ||
+        /\b(?:Bayard|Publication|Publications)\b/i.test(line.text) ||
+        (payeeAnchor !== undefined && verticalDistance(payeeAnchor, line) <= 0.035 && line.left > payeeAnchor.left)
+      );
+    })
     .map((line) => ({
       line,
       value: extractMoneyCandidate(line.text),
@@ -430,8 +462,25 @@ function extractCheckAmountNumeric(lines: OcrLine[]): { value: number | null; me
 function extractCheckAmountWords(lines: OcrLine[]): string | null {
   const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
   const wordsBand = lines.filter(
-    (line) => isWithinBand(line.top, 0.27, 0.43) && (!useHorizontalGeometry || isWithinBand(line.left, 0.08, 0.72)),
+    (line) => isWithinBand(line.top, 0.24, 0.43) && (!useHorizontalGeometry || isWithinBand(line.left, 0.08, 0.72)),
   );
+  const normalizeWords = (text: string): string =>
+    normalizeWhitespace(text.replace(/^\s*[-.,·]+/, "").replace(/\s*-\s*/g, "-").replace(/\s*\/\s*/g, " / "));
+  const nearbyCents = (candidate: OcrLine): OcrLine | undefined =>
+    wordsBand.find(
+      (line) =>
+        line !== candidate &&
+        /^\d{2}$/.test(line.text) &&
+        Math.abs(line.top - candidate.top) <= 0.025 &&
+        line.left > candidate.left,
+    );
+  const nearbyFraction = (candidate: OcrLine): OcrLine | undefined =>
+    wordsBand.find(
+      (line) =>
+        line !== candidate &&
+        (/\d{2}\s*\/\s*100/i.test(line.text) || /^100 DOLLARS/i.test(line.text) || /^[A-Z]\s*\/\s*100 DOLLARS/i.test(line.text)) &&
+        verticalDistance(candidate, line) <= 0.035,
+    );
   const orderAnchor = lines.find((line) => /ORDER OF|L'ORDRE DE/i.test(line.text));
   if (orderAnchor) {
     const candidate = wordsBand.find(
@@ -445,21 +494,19 @@ function extractCheckAmountWords(lines: OcrLine[]): string | null {
         !BANK_LINE_PATTERN.test(line.text),
     );
     if (candidate) {
-      const fractionLine = wordsBand.find(
-        (line) =>
-          line !== candidate &&
-          /\d{2}\s*\/\s*100/i.test(line.text) &&
-          line.top >= candidate.top &&
-          verticalDistance(candidate, line) <= 0.03,
-      );
-      const merged = fractionLine ? `${candidate.text} ${fractionLine.text}` : candidate.text;
-      return normalizeWhitespace(merged.replace(/^\s*[-.,]+/, "").replace(/\s*\/\s*/g, " / "));
+      const centsLine = nearbyCents(candidate);
+      const fractionLine = nearbyFraction(candidate);
+      const fractionText =
+        fractionLine && centsLine && !/\d{2}\s*\/\s*100/i.test(fractionLine.text)
+          ? `${centsLine.text}/${fractionLine.text}`
+          : fractionLine?.text;
+      return normalizeWords([candidate.text, fractionText].filter(Boolean).join(" "));
     }
   }
 
   const withFraction = wordsBand.find((line) => /\d{2}\s*\/\s*100/i.test(line.text) && hasMostlyLetters(line.text));
   if (withFraction) {
-    return normalizeWhitespace(withFraction.text.replace(/\s*-\s*/g, "-").replace(/\s*\/\s*/g, " / "));
+    return normalizeWords(withFraction.text);
   }
 
   return null;
@@ -476,7 +523,13 @@ function extractPayerName(lines: OcrLine[]): string | null {
   }
 
   const candidates = lines
-    .filter((line) => isWithinBand(line.top, 0.17, 0.24) && line.left <= 0.4 && isLikelyCheckNameLine(line))
+    .filter(
+      (line) =>
+        isWithinBand(line.top, 0.14, 0.24) &&
+        line.left <= 0.4 &&
+        isLikelyCheckNameLine(line) &&
+        !/\b(?:Bayard|Publication|Publications)\b/i.test(line.text),
+    )
     .sort((left, right) => left.top - right.top || left.left - right.left);
   const first = candidates[0];
   if (!first) {
@@ -508,7 +561,7 @@ function extractPayerAddress(lines: OcrLine[], payerName: string | null): string
     : null;
   if (nameLine) {
     const ordered = lines
-      .filter((line) => line.left <= 0.42)
+      .filter((line) => line.left <= Math.min(0.42, nameLine.left + 0.28))
       .sort((left, right) => left.top - right.top || left.left - right.left);
     const startIndex = ordered.findIndex((line) => line === nameLine);
     if (startIndex !== -1) {
@@ -526,7 +579,7 @@ function extractPayerAddress(lines: OcrLine[], payerName: string | null): string
           break;
         }
         if (addressLines.length === 0) {
-          if (!isStreetAddressLine(line.text)) {
+          if (!isStreetAddressLine(line.text) && !isCityPostalLine(line.text)) {
             break;
           }
           addressLines.push(line);

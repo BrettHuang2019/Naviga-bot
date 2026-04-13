@@ -22,6 +22,8 @@ Accept a line as a `check_number` candidate when:
 - `left >= 0.60`
 - text matches `^\d{3,6}$`
 
+Allow a slightly looser left cutoff, around `left >= 0.58`, when the token is isolated, numeric-only, and still in the upper-right check-number position. This captures scans where the check number lands just left of the nominal cutoff, such as `087`.
+
 ### Best choice
 
 - If there is exactly one candidate, return it.
@@ -218,11 +220,13 @@ The payee text is usually one of:
 - `Bayard Presse Canada Inc.`
 - `Bayard Press Canada inc.`
 - `Publications BLD`
+- OCR may emit `Publication BLD`; normalize this to `Publications BLD`.
 
 Sometimes OCR merges the payee with the numeric amount on the same line, for example:
 
 - `Bayard Press Canada inc. 71. 23 $`
 - `Bayard Presse Canada Inc. $83.62 $`
+- `Bayard Presse Canada Inc $4515`
 
 So the extraction rule should anchor on `PAYEZ À` first, then clean trailing amount text.
 
@@ -265,6 +269,7 @@ Also accept French continuation patterns when OCR splits the anchor:
    - remove trailing currency or amount fragments such as:
      - `71.23 $`
      - `$83.62 $`
+     - `$4515` when it clearly means `$45.15`
      - `45.04`
    - collapse repeated spaces
 6. Reject the candidate if, after cleanup, it is mostly numeric or looks like only an amount.
@@ -277,6 +282,8 @@ Use the anchor-based line, then remove trailing amount text with a pattern like:
 - `\s+\$?\s*\d{1,3}(?:[.,]\s*\d{2})\s*\$?\s*$`
 
 This is meant to remove amount text only at the end of the line.
+
+Also remove an implicit-cents suffix such as `\s+\$\s*\d{3,5}\s*$` from payee text after separately extracting it as the numeric amount.
 
 ### Best choice
 
@@ -394,6 +401,7 @@ Accept these OCR shapes:
 - `$ 71.23 $`
 - `71. 23`
 - `71 , 23`
+- `$4515`, when it appears on the payee/amount line and should normalize to `45.15`
 
 Reject likely non-amount lines such as:
 
@@ -409,12 +417,14 @@ Reject likely non-amount lines such as:
    - `1 to 3` digits before the separator
    - optional spaces around the separator
    - exactly `2` digits after the separator
-3. Normalize:
+3. Also search the anchored payee line when it contains the payee text plus a trailing amount, even if the line starts left of the normal amount band.
+4. For implicit-cents currency strings such as `$4515`, split the last two digits as cents only when the string is anchored to the payee/amount row.
+5. Normalize:
    - convert `,` to `.`
    - remove spaces around the decimal separator
    - remove surrounding currency symbols
-4. Return the normalized value as `NN.NN`.
-5. If multiple candidates exist, prefer the one:
+6. Return the normalized value as `NN.NN`.
+7. If multiple candidates exist, prefer the one:
    - farthest right
    - closest to the payee / amount row
    - with the cleanest `2-digit` decimal part
@@ -454,6 +464,8 @@ Accept a line as a `check_amount_words` candidate when:
 - text contains mostly letters and spaces
 - text also contains a cents fraction like `\d{2}/100`, or looks like a spelled-out amount line
 
+When the line is anchored immediately after `L'ORDRE DE` / `ORDER OF`, allow it to start as high as `top ~= 0.24`, because several scans place the amount words higher than the nominal words band.
+
 Accept French and English-style amount wording such as:
 
 - `soixante et onze et 23/100`
@@ -474,11 +486,12 @@ Reject lines that are clearly:
 1. Restrict to lines in the words band of the check.
 2. Prefer lines containing a cents suffix like `23/100`.
 3. If the amount words are split across two adjacent lines, merge only the nearest overlapping pair.
-4. Clean the result:
+4. If cents are split into separate OCR tokens, such as `Quarante cinq` + `15` + `100 DOLLARS`, merge them into `Quarante cinq 15/100 DOLLARS`.
+5. Clean the result:
    - trim punctuation
    - collapse repeated spaces
    - normalize spaces around `/`
-5. Return the cleaned text as `check_amount_words`.
+6. Return the cleaned text as `check_amount_words`.
 
 #### Suggested parsing for confirmation
 
@@ -762,7 +775,7 @@ Address-like signals include:
 
 - street numbers
 - `PO BOX` or `P.O. BOX`
-- street words such as `RUE`, `ST`, `STREET`, `BOULEVARD`, `BLVD`, `CHEMIN`, `AVE`
+- street words such as `RUE`, `ST`, `STREET`, `BOULEVARD`, `BLVD`, `CHEMIN`, `CROIS`, `CRES`, `AV`, `AVE`
 - city, province, or postal code patterns
 
 Reject lines that contain:
@@ -779,6 +792,7 @@ Reject lines that contain:
 2. Starting from the first line below that block, collect up to `3` consecutive address-like lines in the upper-left band.
 3. Keep lines in reading order while all are true:
    - they stay left of the date and amount area
+   - they stay in the same horizontal owner block; ignore right-side `FOLIO` or check metadata that appears on the same row
    - they are close vertically to the previous address line
    - they are not phone, bank, or coupon lines
 4. Stop when the next line is:
