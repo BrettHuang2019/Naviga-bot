@@ -57,6 +57,9 @@ type ExtractionInput = string | OcrPayload | ParsedOcrDocument;
 
 type ParsedCouponOption = CouponOption & {
   marked: boolean;
+  mark: string | null;
+  unselected: boolean;
+  selectionScore: number;
 };
 
 const ACCEPTED_PAYEES = [
@@ -622,6 +625,22 @@ function extractPayerAddress(lines: OcrLine[], payerName: string | null): string
 function splitIncomeDocumentLines(document: ParsedOcrDocument): { checkLines: OcrLine[]; couponLines: OcrLine[] } {
   const anchorIndex = document.lines.findIndex((line) => COUPON_ANCHOR_PATTERN.test(line.text));
   if (anchorIndex !== -1) {
+    if (hasUsefulHorizontalGeometry(document.lines)) {
+      const anchor = document.lines[anchorIndex];
+      const offerStartTop =
+        document.lines
+          .slice(0, anchorIndex)
+          .filter((line) => line.top >= Math.max(0.45, anchor.top - 0.2) && parseCouponOption(line) !== null)
+          .map((line) => line.top)
+          .sort((left, right) => left - right)[0] ?? anchor.top;
+      const couponStartTop = Math.min(anchor.top, offerStartTop);
+
+      return {
+        checkLines: document.lines.filter((line) => line.top < couponStartTop),
+        couponLines: document.lines.filter((line) => line.top >= couponStartTop),
+      };
+    }
+
     return {
       checkLines: document.lines.slice(0, anchorIndex),
       couponLines: document.lines.slice(anchorIndex),
@@ -682,49 +701,318 @@ function extractAmounts(text: string, options: { allowImplicitCents?: boolean } 
     .filter((value) => Number.isFinite(value) && value > 0 && value < 10000);
 }
 
-function extractCheckAmountFromLines(lines: OcrLine[]): number | null {
-  const payToIndex = lines.findIndex((line) => /PAY TO THE|PAYEZ[ÀA]?/i.test(line.text));
-  const orderIndex = lines.findIndex((line) => /ORDER OF|L'ORDRE DE/i.test(line.text));
-  const searchPool = lines.filter((line, index) => {
-    if (payToIndex !== -1 && Math.abs(index - payToIndex) <= 2) {
-      return true;
-    }
-    if (orderIndex !== -1 && index >= Math.max(0, orderIndex - 2) && index <= orderIndex + 1) {
-      return true;
-    }
-    return false;
-  });
+function correctAmountWithWrittenCents(amount: number, lines: OcrLine[], amountLineIndex: number): number {
+  const currentCents = Math.round((amount - Math.trunc(amount)) * 100);
+  const nearby = lines.slice(amountLineIndex + 1, Math.min(lines.length, amountLineIndex + 7));
 
-  for (const line of searchPool) {
-    const amount = extractAmounts(line.text, { allowImplicitCents: true }).at(-1);
-    if (amount !== undefined) {
-      return amount;
+  for (let index = 0; index < nearby.length; index += 1) {
+    const text = normalizeWhitespace(nearby[index].text);
+    const inline = text.match(/\b(\d{2})\s*\/\s*100\b/i);
+    const split = text.match(/^(\d{2})$/) && /100\s+DOLLARS?/i.test(nearby[index + 1]?.text ?? "");
+    const cents = inline?.[1] ?? (split ? text : null);
+
+    if (cents && Number(cents) !== currentCents) {
+      return Math.trunc(amount) + Number(cents) / 100;
     }
   }
 
-  for (const line of lines.slice(0, Math.min(lines.length, 12))) {
+  return amount;
+}
+
+function extractCheckAmountFromLines(lines: OcrLine[]): number | null {
+  const payToIndex = lines.findIndex((line) => /PAY TO THE|PAYEZ[ÀA]?/i.test(line.text));
+  const orderIndex = lines.findIndex((line) => /ORDER OF|L'ORDRE DE/i.test(line.text));
+  const searchPool = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ index }) => {
+      if (payToIndex !== -1 && Math.abs(index - payToIndex) <= 2) {
+        return true;
+      }
+      if (orderIndex !== -1 && index >= Math.max(0, orderIndex - 3) && index <= orderIndex + 3) {
+        return true;
+      }
+      return false;
+    });
+
+  for (const { line, index } of searchPool) {
     const amount = extractAmounts(line.text, { allowImplicitCents: true }).at(-1);
     if (amount !== undefined) {
-      return amount;
+      return correctAmountWithWrittenCents(amount, lines, index);
+    }
+  }
+
+  for (const [index, line] of lines.slice(0, Math.min(lines.length, 12)).entries()) {
+    const amount = extractAmounts(line.text, { allowImplicitCents: true }).at(-1);
+    if (amount !== undefined) {
+      return correctAmountWithWrittenCents(amount, lines, index);
     }
   }
 
   return null;
 }
 
+function uniqueValues<T>(values: T[]): T[] {
+  return [...new Set(values)];
+}
+
+function normalizeOcrDigits(text: string): string {
+  return text.replace(/[Oo]/g, "0").replace(/[Il|]/g, "1");
+}
+
+function findStandaloneSixDigitTokens(text: string): string[] {
+  return [...normalizeOcrDigits(text).matchAll(/(?<!\d)(\d{6})(?!\d)/g)].map((match) => match[1]);
+}
+
+type ClientCandidate = {
+  value: string;
+  priority: number;
+  confidence: ExtractionConfidence;
+  source: ExtractionMeta["source"];
+  line: string;
+};
+
+function extractCouponClientNumber(lines: OcrLine[]): { value: string | null; meta?: ExtractionMeta } {
+  const candidates: ClientCandidate[] = [];
+  const subscriberAnchors = lines.filter((line) => /Pour l'abonnement de/i.test(line.text));
+
+  for (const line of lines) {
+    const text = normalizeWhitespace(line.text);
+    const lowerPriorityRegion = line.top < 0.5;
+    if (lowerPriorityRegion) {
+      continue;
+    }
+
+    const hasSubscriberAnchor = /Pour l'abonnement de/i.test(text);
+    const hasClientAnchor = /\bno\s*,?\s*de\s+client\b|\bno\s+client\b|\bNo\s+Client\s*#\b|#\s*CLIENT\b/i.test(text);
+    const nearSubscriberBlock = subscriberAnchors.some((anchor) => verticalDistance(anchor, line) <= 0.035);
+    const sixDigitTokens = findStandaloneSixDigitTokens(text);
+
+    if (hasSubscriberAnchor && hasClientAnchor) {
+      for (const value of sixDigitTokens) {
+        candidates.push({ value, priority: 1, confidence: "high", source: "direct", line: text });
+      }
+      continue;
+    }
+
+    if (hasClientAnchor) {
+      for (const value of sixDigitTokens) {
+        candidates.push({
+          value,
+          priority: hasSubscriberAnchor ? 1 : nearSubscriberBlock || subscriberAnchors.length === 0 ? 2 : 5,
+          confidence: /#\s*CLIENT\b|\bNo\s+Client\s*#/i.test(text) ? "medium" : "high",
+          source: "direct",
+          line: text,
+        });
+      }
+      continue;
+    }
+
+    if (hasSubscriberAnchor) {
+      for (const value of sixDigitTokens) {
+        candidates.push({ value, priority: 3, confidence: "high", source: "direct", line: text });
+      }
+      continue;
+    }
+
+    if (/^[A-Z]{3}\s+\d{6}\s+\d{1,2}\/\d{1,2}\/\d{4}$/i.test(text)) {
+      for (const value of sixDigitTokens) {
+        candidates.push({ value, priority: 4, confidence: "medium", source: "fallback", line: text });
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { value: null };
+  }
+
+  const bestPriority = Math.min(...candidates.map((candidate) => candidate.priority));
+  const strongest = candidates.filter((candidate) => candidate.priority === bestPriority);
+  const strongestValues = uniqueValues(strongest.map((candidate) => candidate.value));
+
+  if (strongestValues.length > 1) {
+    return {
+      value: null,
+      meta: buildMeta("low", "conflicting", [
+        `Multiple equally strong coupon client candidates found: ${strongestValues.join(", ")}.`,
+      ]),
+    };
+  }
+
+  const weakerConflicts = uniqueValues(candidates.filter((candidate) => candidate.value !== strongestValues[0]).map((candidate) => candidate.value));
+  const best = strongest[0];
+  return {
+    value: best.value,
+    meta: buildMeta(
+      weakerConflicts.length > 0 ? "medium" : best.confidence,
+      weakerConflicts.length > 0 ? "conflicting" : best.source,
+      weakerConflicts.length > 0
+        ? [`Ignored weaker coupon client candidate(s): ${weakerConflicts.join(", ")}.`]
+        : best.priority === 4
+          ? [`Used product/date fallback line: ${best.line}.`]
+          : undefined,
+    ),
+  };
+}
+
+function extractCouponPromoCode(lines: OcrLine[]): { value: string | null; meta?: ExtractionMeta } {
+  const candidates = uniqueValues(
+    lines
+      .filter((line) => line.top >= 0.55)
+      .flatMap((line) => {
+        const upper = line.text.toUpperCase();
+        return [...upper.matchAll(/[A-Z]{3}[0-9]{4}[A-Z0-9]{2,}/g)].map((match) => ({
+          value: match[0],
+          cleanLine: upper.trim() === match[0],
+          preferredBand: line.top >= 0.6 && line.top <= 0.72,
+          line: line.text,
+        }));
+      }),
+  );
+
+  const values = uniqueValues(candidates.map((candidate) => candidate.value));
+  if (values.length === 0) {
+    return { value: null, meta: buildMeta("low", "conflicting", ["No promo-like coupon token was found."]) };
+  }
+
+  if (values.length === 1) {
+    const candidate = candidates.find((item) => item.value === values[0])!;
+    const year = Number(candidate.value.slice(3, 7));
+    const notes = year < 2020 || year > 2035 ? ["Promo token year digits may be OCR-damaged."] : undefined;
+    return {
+      value: candidate.value,
+      meta: buildMeta(candidate.cleanLine && candidate.preferredBand && !notes ? "high" : "medium", candidate.cleanLine ? "direct" : "normalized", notes),
+    };
+  }
+
+  const preferredValues = uniqueValues(candidates.filter((candidate) => candidate.preferredBand).map((candidate) => candidate.value));
+  if (preferredValues.length === 1) {
+    return {
+      value: preferredValues[0],
+      meta: buildMeta("medium", "conflicting", [`Multiple promo candidates found: ${values.join(", ")}; chose the one in the coupon promo band.`]),
+    };
+  }
+
+  return {
+    value: null,
+    meta: buildMeta("low", "conflicting", [`Multiple coupon promo candidates found: ${values.join(", ")}.`]),
+  };
+}
+
+function leadingOptionMark(text: string): { mark: string | null; marked: boolean; unselected: boolean; score: number } {
+  const trimmed = text.trimStart();
+  const mark = trimmed.match(/^[XxLM1₡€¢•*0]/u)?.[0] ?? null;
+  if (!mark) {
+    return { mark: null, marked: false, unselected: false, score: 0 };
+  }
+
+  if (mark === "0") {
+    return { mark, marked: false, unselected: true, score: -1 };
+  }
+
+  return { mark, marked: true, unselected: false, score: /[XxLM1]/.test(mark) ? 3 : 2 };
+}
+
 function parseCouponOption(line: OcrLine): ParsedCouponOption | null {
   const text = normalizeWhitespace(line.text);
-  if (!/(?:\b2\s*ans?\b|\b1\s*an\b|\b1an\b|\blan\b|\balan\b|\b11\s*(?:nos|num[eé]ros)\b|\b22\s*(?:nos|num[eé]ros)\b)/i.test(text)) {
+  if (!/(?:\b6\s*mois\b|\b2\s*ans?\b|\b1\s*an\b|\b1an\b|\blan\b|\balan\b|\b11\s*(?:nos|num[eé]ros)\b|\b12\s*(?:nos|num[eé]ros)\b|\b22\s*(?:nos|num[eé]ros)\b|\b24\s*(?:nos|num[eé]ros)\b)/i.test(text)) {
+    return null;
+  }
+
+  const amount = extractDecimalAmounts(text).at(-1) ?? null;
+  if (amount === null) {
     return null;
   }
 
   const issuesMatch = text.match(/\((\d+)\s*(?:nos|num[eé]ros)/i);
+  const mark = leadingOptionMark(text);
   return {
     raw: text,
     years: /\b2\s*ans?\b/i.test(text) ? 2 : /(?:\b1\s*an\b|\b1an\b|\blan\b|\balan\b)/i.test(text) ? 1 : null,
     issues: issuesMatch ? Number(issuesMatch[1]) : null,
-    amount: extractDecimalAmounts(text).at(-1) ?? null,
-    marked: /^[Xx₡€¢•*]/.test(text),
+    amount,
+    marked: mark.marked,
+    mark: mark.mark,
+    unselected: mark.unselected,
+    selectionScore: mark.score,
+  };
+}
+
+function chooseCouponOption(
+  options: ParsedCouponOption[],
+  checkAmount: number | null,
+): { selectedOption: ParsedCouponOption | null; selectedOptionMeta?: ExtractionMeta; paymentAmount: number | null; paymentAmountMeta?: ExtractionMeta } {
+  if (options.length === 0) {
+    return {
+      selectedOption: null,
+      selectedOptionMeta: buildMeta("low", "conflicting", ["No coupon option rows were captured."]),
+      paymentAmount: null,
+      paymentAmountMeta: buildMeta("low", "conflicting", ["No coupon option amount was captured."]),
+    };
+  }
+
+  const amountMatches =
+    checkAmount === null ? [] : options.filter((option) => option.amount !== null && amountsEqual(option.amount, checkAmount));
+  const markedOptions = options
+    .filter((option) => option.marked && option.amount !== null)
+    .sort((left, right) => right.selectionScore - left.selectionScore);
+
+  const bestMarked = markedOptions[0] ?? null;
+  const amountMatch = amountMatches[0] ?? null;
+
+  if (bestMarked && amountMatch && bestMarked !== amountMatch) {
+    return {
+      selectedOption: amountMatch,
+      selectedOptionMeta: buildMeta("low", "conflicting", [
+        `Marked option amount ${bestMarked.amount?.toFixed(2)} conflicts with check amount ${checkAmount?.toFixed(2)}.`,
+      ]),
+      paymentAmount: amountMatch.amount,
+      paymentAmountMeta: buildMeta("low", "conflicting", ["Selected option by check amount despite a conflicting explicit mark."]),
+    };
+  }
+
+  if (bestMarked) {
+    const damagedMark = bestMarked.selectionScore < 3;
+    const supportedByAmount = checkAmount !== null && bestMarked.amount !== null && amountsEqual(bestMarked.amount, checkAmount);
+    const confidence: ExtractionConfidence = damagedMark ? "medium" : "high";
+    return {
+      selectedOption: bestMarked,
+      selectedOptionMeta: buildMeta(confidence, damagedMark ? "normalized" : "direct"),
+      paymentAmount: bestMarked.amount,
+      paymentAmountMeta: buildMeta(
+        confidence,
+        damagedMark ? "normalized" : "direct",
+        supportedByAmount ? ["Damaged option mark is supported by the check amount."] : undefined,
+      ),
+    };
+  }
+
+  if (amountMatch) {
+    return {
+      selectedOption: amountMatch,
+      selectedOptionMeta: buildMeta("medium", "inferred", ["Selected coupon option by matching its price to the check amount."]),
+      paymentAmount: amountMatch.amount,
+      paymentAmountMeta: buildMeta("medium", "inferred", ["Coupon option price matches the check amount."]),
+    };
+  }
+
+  const strongestMark = options.filter((option) => option.marked).sort((left, right) => right.selectionScore - left.selectionScore)[0] ?? null;
+  if (strongestMark) {
+    return {
+      selectedOption: strongestMark,
+      selectedOptionMeta: buildMeta("low", "normalized", ["Selected the strongest mark-like coupon option without amount support."]),
+      paymentAmount: strongestMark.amount,
+      paymentAmountMeta:
+        strongestMark.amount === null
+          ? buildMeta("low", "conflicting", ["Selected coupon option did not include a readable price."])
+          : buildMeta("low", "normalized", ["Price came from a weakly selected coupon option."]),
+    };
+  }
+
+  return {
+    selectedOption: null,
+    selectedOptionMeta: buildMeta("low", "conflicting", ["No explicit coupon mark or check-amount match was available."]),
+    paymentAmount: null,
+    paymentAmountMeta: buildMeta("low", "conflicting", ["No selected coupon option amount was captured."]),
   };
 }
 
@@ -748,11 +1036,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
   const lines = couponLines.length > 0 ? couponLines : document.lines;
   const fullText = document.fullText || joinLineText(document.lines);
 
-  const subscriberClientMatch =
-    lines.map((line) => line.text.match(/no\s+de\s+client\s*[:#]?\s*(\d{4,})/i)).find((match) => match)?.[1] ??
-    lines.map((line) => line.text.match(/#\s*CLIENT\s*[:#]?\s*(\d{4,})/i)).find((match) => match)?.[1] ??
-    lines.map((line) => line.text.match(/Pour l'abonnement de\s*:?\s*(\d{4,})\b/i)).find((match) => match)?.[1] ??
-    null;
+  const subscriberClientNumber = extractCouponClientNumber(lines);
 
   const subscriberAnchorIndex = lines.findIndex((line) => /Pour l'abonnement de/i.test(line.text));
   let subscriberName: string | null = null;
@@ -779,10 +1063,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     lines.map((line) => line.text.match(/No\s+Client\s*#\s*(\d{4,})/i)).find((match) => match)?.[1] ??
     null;
 
-  const promoCandidates = [...new Set(
-    lines.flatMap((line) => line.text.toUpperCase().replace(/\s+/g, "").match(/[A-Z]{3}[0-9]{4}AV[0-9A-Z]/g) ?? []),
-  )];
-  const offerCode = promoCandidates[0] ?? null;
+  const offerCode = extractCouponPromoCode(lines);
   const renewalCampaignCode =
     lines
       .map((line) => line.text.toUpperCase().replace(/\s+/g, "").match(/([A-Z]{3,4}LERE\d{2})/))
@@ -797,26 +1078,11 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     null;
   const productName = detectProductName(lines);
   const options = lines.map((line) => parseCouponOption(line)).filter((line): line is ParsedCouponOption => line !== null);
+  const optionChoice = chooseCouponOption(options, extractCheckAmountFromLines(checkLines));
 
-  let selectedOptionMeta: ExtractionMeta | undefined;
-  let selectedOption: ParsedCouponOption | null = options.find((option) => option.marked) ?? null;
-  if (selectedOption) {
-    selectedOptionMeta = buildMeta("high", "direct");
-  } else {
-    selectedOptionMeta = buildMeta("low", "conflicting", ["No explicit coupon mark was captured."]);
-  }
-
-  let paymentAmount: number | null = selectedOption?.amount ?? null;
-  let paymentAmountMeta: ExtractionMeta | undefined;
-  if (selectedOption?.amount !== null && selectedOption?.amount !== undefined) {
-    paymentAmountMeta = selectedOption.marked
-      ? buildMeta("high", "direct")
-      : buildMeta("medium", "direct");
-  } else {
-    paymentAmountMeta = buildMeta("low", "conflicting", ["No explicit coupon option amount was captured."]);
-  }
-
-  const payerAnchorIndex = lines.findIndex((line) => offerCode !== null && line.text.toUpperCase().replace(/\s+/g, "").includes(offerCode));
+  const payerAnchorIndex = lines.findIndex(
+    (line) => offerCode.value !== null && line.text.toUpperCase().replace(/\s+/g, "").includes(offerCode.value),
+  );
   const payerName = (() => {
     if (payerAnchorIndex !== -1) {
       for (let index = payerAnchorIndex + 1; index < Math.min(lines.length, payerAnchorIndex + 7); index += 1) {
@@ -858,31 +1124,30 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     file,
     productName,
     subscriberName,
-    subscriberClientNumber: subscriberClientMatch ?? null,
+    subscriberClientNumber: subscriberClientNumber.value,
     billToNameId: billToNameId ?? null,
     payerName,
     payerAddress,
-    offerCode,
+    offerCode: offerCode.value,
     renewalCampaignCode: renewalCampaignCode ?? null,
     renewalDate,
-    paymentAmount,
+    paymentAmount: optionChoice.paymentAmount,
     copies: copies ?? null,
-    options: options.map(({ marked: _marked, ...option }) => option),
-    selectedOption: selectedOption ? (({ marked: _marked, ...option }) => option)(selectedOption) : null,
+    options: options.map(({ marked: _marked, mark: _mark, unselected: _unselected, selectionScore: _selectionScore, ...option }) => option),
+    selectedOption: optionChoice.selectedOption
+      ? (({ marked: _marked, mark: _mark, unselected: _unselected, selectionScore: _selectionScore, ...option }) => option)(
+          optionChoice.selectedOption,
+        )
+      : null,
     rawTextPreview: previewLines(lines),
     fieldMeta: {
-      subscriberClientNumber: subscriberClientMatch ? buildMeta("high", "direct") : undefined,
+      subscriberClientNumber: subscriberClientNumber.meta,
       subscriberName: subscriberNameMeta,
       billToNameId: billToNameId ? buildMeta("medium", "direct") : undefined,
-      offerCode:
-        offerCode === null
-          ? undefined
-          : promoCandidates.length === 1
-            ? buildMeta("high", "direct")
-            : buildMeta("low", "conflicting", [`Multiple promo candidates found: ${promoCandidates.join(", ")}`]),
+      offerCode: offerCode.meta,
       renewalCampaignCode: renewalCampaignCode ? buildMeta("medium", "direct") : undefined,
-      selectedOption: selectedOptionMeta,
-      paymentAmount: paymentAmountMeta,
+      selectedOption: optionChoice.selectedOptionMeta,
+      paymentAmount: optionChoice.paymentAmountMeta,
     },
   };
 }

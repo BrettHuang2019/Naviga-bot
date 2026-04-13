@@ -64,8 +64,9 @@ test("extractIncomeDocument returns separate check and coupon sections", () => {
   assert.equal(income.check.checkNumber, "035");
   assert.equal(income.coupon.subscriberClientNumber, "502157");
   assert.equal(income.coupon.offerCode, "JAL2022AV1");
-  assert.equal(income.coupon.paymentAmount, null);
-  assert.equal(income.coupon.selectedOption, null);
+  assert.equal(income.coupon.paymentAmount, 56.45);
+  assert.equal(income.coupon.selectedOption?.issues, 12);
+  assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "inferred");
 });
 
 const sample502157Text = `HEIDI SOULES
@@ -113,9 +114,10 @@ test("artifact 502157 keeps the damaged date and promo in the right regions", as
   assert.equal(income.check.date, "2022-11-22");
   assert.equal(income.coupon.offerCode, "JAL2022AV1");
   assert.equal(income.coupon.subscriberClientNumber, "502157");
-  assert.equal(income.coupon.paymentAmount, null);
-  assert.equal(income.coupon.selectedOption, null);
-  assert.equal(income.coupon.fieldMeta?.selectedOption?.confidence, "low");
+  assert.equal(income.coupon.paymentAmount, 56.45);
+  assert.equal(income.coupon.selectedOption?.issues, 12);
+  assert.equal(income.coupon.fieldMeta?.selectedOption?.confidence, "medium");
+  assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "inferred");
 });
 
 test("artifact 670684 extracts the merged promo line and coupon option by amount inference", async () => {
@@ -125,7 +127,7 @@ test("artifact 670684 extracts the merged promo line and coupon option by amount
   assert.equal(income.coupon.offerCode, "DEB2021AV1");
   assert.equal(income.coupon.paymentAmount, 48.22);
   assert.equal(income.coupon.selectedOption?.issues, 11);
-  assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "direct");
+  assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "normalized");
 });
 
 test("artifact 432688 preserves weak amount OCR without leaking coupon data into the check", async () => {
@@ -136,8 +138,18 @@ test("artifact 432688 preserves weak amount OCR without leaking coupon data into
   assert.equal(income.check.amountNumber, 45.04);
   assert.equal(income.check.payerAddress, "1768 CROIS HENRI RENAUD, PREVOST, QC JOR 1TO");
   assert.equal(income.coupon.offerCode, "CUR2023AV1");
-  assert.equal(income.coupon.paymentAmount, null);
-  assert.equal(income.coupon.fieldMeta?.paymentAmount?.confidence, "low");
+  assert.equal(income.coupon.paymentAmount, 45.94);
+  assert.equal(income.coupon.fieldMeta?.paymentAmount?.source, "inferred");
+});
+
+test("artifact 693314 matches the one-year coupon option from the check amount", async () => {
+  const parsed = parseOcrPayload(await loadArtifact("693314"));
+  const income = extractIncomeDocument("693314.json", parsed);
+
+  assert.equal(income.check.amountNumber, 45.94);
+  assert.equal(income.coupon.paymentAmount, 45.94);
+  assert.equal(income.coupon.selectedOption?.issues, 11);
+  assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "inferred");
 });
 
 test("artifact 764622 extracts implicit cents in the payee line and prefers the explicit client number", async () => {
