@@ -19,6 +19,10 @@ async function loadArtifact(id: string): Promise<OcrPayload> {
   return JSON.parse(await readFile(path.join(artifactDir, file), "utf8")) as OcrPayload;
 }
 
+async function loadArtifactFile(file: string): Promise<OcrPayload> {
+  return JSON.parse(await readFile(path.join(rootDir, "artifacts", "ocr", file), "utf8")) as OcrPayload;
+}
+
 const sampleIncomeText = `David Soules
 035
 Heidi Soules
@@ -63,7 +67,7 @@ test("extractIncomeDocument returns separate check and coupon sections", () => {
 
   assert.equal(income.check.checkNumber, "035");
   assert.equal(income.coupon.subscriberClientNumber, "502157");
-  assert.equal(income.coupon.offerCode, "JAL2022AV1");
+  assert.equal(income.coupon.promoCode, "JAL2022AV1");
   assert.equal(income.coupon.paymentAmount, 56.45);
   assert.equal(income.coupon.selectedOption?.issues, 12);
   assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "inferred");
@@ -112,7 +116,7 @@ test("artifact 502157 keeps the damaged date and promo in the right regions", as
   const income = extractIncomeDocument("502157.json", parsed);
 
   assert.equal(income.check.date, "2022-11-22");
-  assert.equal(income.coupon.offerCode, "JAL2022AV1");
+  assert.equal(income.coupon.promoCode, "JAL2022AV1");
   assert.equal(income.coupon.subscriberClientNumber, "502157");
   assert.equal(income.coupon.paymentAmount, 56.45);
   assert.equal(income.coupon.selectedOption?.issues, 12);
@@ -124,7 +128,7 @@ test("artifact 670684 extracts the merged promo line and coupon option by amount
   const parsed = parseOcrPayload(await loadArtifact("670684"));
   const income = extractIncomeDocument("670684.json", parsed);
 
-  assert.equal(income.coupon.offerCode, "DEB2021AV1");
+  assert.equal(income.coupon.promoCode, "DEB2021AV1");
   assert.equal(income.coupon.paymentAmount, 48.22);
   assert.equal(income.coupon.selectedOption?.issues, 11);
   assert.equal(income.coupon.fieldMeta?.selectedOption?.source, "normalized");
@@ -137,7 +141,7 @@ test("artifact 432688 preserves weak amount OCR without leaking coupon data into
   assert.equal(income.check.payTo, "Publications BLD");
   assert.equal(income.check.amountNumber, 45.04);
   assert.equal(income.check.payerAddress, "1768 CROIS HENRI RENAUD, PREVOST, QC JOR 1TO");
-  assert.equal(income.coupon.offerCode, "CUR2023AV1");
+  assert.equal(income.coupon.promoCode, "CUR2023AV1");
   assert.equal(income.coupon.paymentAmount, 45.94);
   assert.equal(income.coupon.fieldMeta?.paymentAmount?.source, "inferred");
 });
@@ -157,7 +161,7 @@ test("artifact 764622 extracts implicit cents in the payee line and prefers the 
   const income = extractIncomeDocument("764622.json", parsed);
 
   assert.equal(income.coupon.subscriberClientNumber, "764622");
-  assert.equal(income.coupon.offerCode, "PJQ2200AV1");
+  assert.equal(income.coupon.promoCode, "PJQ2200AV1");
   assert.equal(income.check.payTo, "Bayard Presse Canada Inc.");
   assert.equal(income.check.amountNumber, 45.15);
   assert.equal(income.check.payerAddress, "1373 CORKERY RD, CARP, ONTARIO KOA1LO");
@@ -181,4 +185,49 @@ test("artifact 463769 uses the top-left payer block instead of payee or bank tex
   assert.equal(income.check.payerName, "RAYNALD CARON");
   assert.equal(income.check.payerAddress, "279 16E AV, DOLBEAU-MISTASSINI, QC G8L 2N2");
   assert.equal(income.check.amountWords, "quatre-vingt-six-18 / 100 DOLLARS fulgte.");
+});
+
+test("new 2026 artifacts keep seven-digit client IDs and 2600 promo codes", async () => {
+  const curium = extractIncomeDocument(
+    "ocr-2026-04-15T18-10-29.986Z.json",
+    parseOcrPayload(await loadArtifactFile("ocr-2026-04-15T18-10-29.986Z.json")),
+  );
+  assert.equal(curium.coupon.subscriberClientNumber, "1008257");
+  assert.equal(curium.coupon.promoCode, "CUR2600AV1");
+  assert.equal(curium.coupon.selectedOption?.amount, 91.93);
+  assert.equal(curium.check.amountWords, "quatre-vingt-onze 93 / 100 DOLLARS");
+
+  const pasp = extractIncomeDocument(
+    "ocr-2026-04-15T18-10-38.785Z_577779.json",
+    parseOcrPayload(await loadArtifact("577779")),
+  );
+  assert.equal(pasp.coupon.subscriberClientNumber, "1008927");
+  assert.equal(pasp.coupon.billToNameId, "577779");
+  assert.equal(pasp.coupon.promoCode, "PASP2600AV1");
+});
+
+test("new 2026 artifacts handle lower check bands and unmarked one-year options", async () => {
+  const prions = extractIncomeDocument(
+    "ocr-2026-04-15T18-10-34.639Z_348892.json",
+    parseOcrPayload(await loadArtifact("348892")),
+  );
+  assert.equal(prions.check.payTo, "Bayard Presse Canada Inc.");
+  assert.equal(prions.coupon.selectedOption?.raw, "1 2 ans à 86,18$ taxes incl.");
+
+  const debrouillards = extractIncomeDocument(
+    "ocr-2026-04-15T18-10-43.639Z_993764.json",
+    parseOcrPayload(await loadArtifact("993764")),
+  );
+  assert.equal(debrouillards.check.date, "2026-04-06");
+  assert.equal(debrouillards.coupon.paymentAmount, 68.93);
+  assert.equal(debrouillards.coupon.selectedOption?.raw, "Extra 1 an pour seulement 68,93$ taxes incluses");
+
+  const liturgie = extractIncomeDocument(
+    "ocr-2026-04-15T18-10-48.008Z_519581.json",
+    parseOcrPayload(await loadArtifact("519581")),
+  );
+  assert.equal(liturgie.check.checkNumber, "172");
+  assert.equal(liturgie.check.payerName, "LUCIE G LETOURNEAU");
+  assert.equal(liturgie.coupon.subscriberName, "Lucie Letourneau");
+  assert.equal(liturgie.coupon.selectedOption?.raw, "1 an (6 numéros) pour seulement = 74.68$ (taxes incluses).");
 });

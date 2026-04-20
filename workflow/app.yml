@@ -2,4 +2,4 @@ version: 1
 browser:
   headless: false
   keepOpen: true
-defaultWorkflow: query-subscription
+defaultWorkflow: add-subscription-to-batch

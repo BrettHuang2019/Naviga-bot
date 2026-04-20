@@ -13,7 +13,7 @@ Return `null` when it cannot be determined confidently.
 ### Main rule
 
 - Only look in the coupon region, usually `top >= 0.58`.
-- Extract a standalone `6 digit` number.
+- Extract a standalone `6 or 7 digit` number.
 - Prefer the number attached to the subscriber block near
   `Pour l'abonnement de`.
 - Do not blindly trust every `#CLIENT` or `No Client#` line, because some files
@@ -35,6 +35,8 @@ Also accept:
 - `Pour l'abonnement de: 463769 RAYNALD CARON`
 - fallback product/date line, such as `CUR 693314 12/01/2022`, only when no
   stronger client anchor exists
+- newer product/date fallback lines with a `7 digit` number, such as
+  `CUR 1008257 01/09/2026`
 
 ### Best choice
 
@@ -43,7 +45,8 @@ Use this priority order:
 1. `Pour l'abonnement de` line that also contains `no de client`.
 2. Nearby line in the subscriber block with `no de client`, `no client`,
    `No Client#`, or `#CLIENT`.
-3. `Pour l'abonnement de:` line with a `6 digit` number before the name.
+3. `Pour l'abonnement de:` line with a `6 or 7 digit` number before or after
+   the name.
 4. Product/date fallback like `CUR 693314 12/01/2022`.
 5. Otherwise return `null`.
 
@@ -64,6 +67,11 @@ candidate and flag the conflict. If only weak candidates conflict, return
 - `Pour l'abonnement de: Heidi Soules no de client: 502157` -> `502157`
 - `DEB #CLIENT: 670684 04/01/2023` -> `670684`
 - `CUR 693314 12/01/2022` -> `693314`, medium confidence
+- `CUR 1008257 01/09/2026` -> `1008257`, medium confidence when no stronger
+  subscriber anchor exists
+- `Pour l'abonnement de: Ketlie-Rose Zephyrin` plus
+  `no de client : 1008927` -> `1008927`, high confidence; ignore weaker
+  `PAS #CLIENT:577779` except as a conflict note
 - `Pour l'abonnement de: Hubert Daigle no de client: 149774` plus
   `AST #CLIENT:541285 12/15/2022` -> `149774`, flag conflict
 - no usable anchor or fallback -> `null`
@@ -135,6 +143,11 @@ Treat these leading marks as possible selected-option signals:
 Treat leading `0` as an unselected-option signal when another option has a
 stronger selected mark.
 
+Do not treat the `1` in a normal duration label such as `1 an` as a selected
+mark. Treat leading `1` as a mark only when it is separated from the option
+label, such as `1 2 ans à 86,18$`, or when the following text is clearly an
+option family like `Extra` or `Régulier`.
+
 Because OCR can damage checkbox marks, do not use the mark alone if it conflicts
 with a better amount match.
 
@@ -187,6 +200,9 @@ Extract the price from the chosen option row.
 - `1 1 an (11 nos) à Mes premiers J'aime Lire Québec pour 44.95$ - 5$ =
   45.15 $ taxes incluses` -> `coupon_option_chosen: "1 an"`,
   `coupon_option_price: "45.15"`
+- `1 an (6 numéros) pour seulement = 74.68$ (taxes incluses)` -> option row
+  only; choose it by amount match or because it is the only option, not because
+  the leading `1` is a checkbox mark
 
 ### Output
 
@@ -219,7 +235,7 @@ Return `null` when it cannot be determined confidently.
 - Search coupon OCR lines for a promo-like substring matching:
 
 ```regex
-[A-Z]{3}[0-9]{4}[A-Z0-9]{2,}
+[A-Z]{3,4}[0-9]{4}[A-Z0-9]{2,}
 ```
 
 - Return the substring match, not the full OCR line.
@@ -228,11 +244,13 @@ Return `null` when it cannot be determined confidently.
 
 The promo code usually has:
 
-- `3` uppercase letters for the product or campaign prefix, such as `CUR`,
-  `EXP`, `DEB`, `AST`, `PJQ`, or `JAL`
-- `4` digits in the middle, usually a year-like value such as `2021`, `2022`,
-  or `2023`
-- uppercase letters or digits at the end, commonly `AV1`
+- `3 or 4` uppercase letters for the product or campaign prefix, such as
+  `CUR`, `EXP`, `DEB`, `AST`, `PJQ`, `JAL`, `PGC`, `LIT`, or `PASP`
+- `4` digits in the middle. Older samples often use a year-like value such as
+  `2021`, `2022`, or `2023`; newer 2026 samples can use campaign blocks such
+  as `2600`.
+- uppercase letters or digits at the end, commonly `AV1`, but values such as
+  `AV3` are also valid
 
 ### Best choice
 
@@ -270,6 +288,9 @@ Flag for manual review when:
   confidence
 - `PJQ2200AV1` -> `coupon_promo_code: "PJQ2200AV1"`, medium confidence and
   flag for possible OCR damage
+- `PASP2600AV1` -> `coupon_promo_code: "PASP2600AV1"`, high confidence
+- `DEB2600AV3 2026-03-23` -> `coupon_promo_code: "DEB2600AV3"`, medium
+  confidence because the token is embedded with a date
 - no usable promo-like token -> `null`
 
 ### Output

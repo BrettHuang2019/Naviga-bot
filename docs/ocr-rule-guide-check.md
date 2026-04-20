@@ -24,6 +24,11 @@ Accept a line as a `check_number` candidate when:
 
 Allow a slightly looser left cutoff, around `left >= 0.58`, when the token is isolated, numeric-only, and still in the upper-right check-number position. This captures scans where the check number lands just left of the nominal cutoff, such as `087`.
 
+Allow the top cutoff to extend to about `top <= 0.26` for lower-positioned
+checks when the token is still isolated and in the upper-right check-number
+position. This captures newer scans where the check number appears around
+`top ~= 0.25`, such as `172`.
+
 ### Best choice
 
 - If there is exactly one candidate, return it.
@@ -108,6 +113,7 @@ Accept these common OCR formats:
 - `2023-01- 20`
 - `20 23-01-20`
 - `2 02 3 - 0 1 -2 7`
+- `2026 - 4 - 0 6`
 
 Normalize them to:
 
@@ -132,7 +138,10 @@ Suggested normalization approach:
 
 - match a date-like pattern such as `(\d[\d ]{3,})\s*-\s*(\d[\d ]{1,2})\s*-\s*(\d[\d ]{1,2})`
 - strip spaces inside each captured group
-- require group lengths `4-2-2` after cleanup
+- require the year to be `4` digits
+- allow month or day to be `1` digit only when it is anchored to `DATE` and
+  nearby fragments make the value unambiguous; pad to `2` digits during
+  normalization
 
 ### Best choice
 
@@ -182,6 +191,8 @@ Flag for review when:
 - Good: `DATE 2023-01- 20` -> `2023-01-20`
 - Good: `DATE 20 23-01-09` -> `2023-01-09`
 - Medium: `DATE 2 02 3 - 0 1 -2 7` -> `2023-01-27`
+- Medium: `DATE 2026 -` plus nearby fragments `4`, `-`, `0`, `6` ->
+  `2026-04-06`
 - Review: `1 1 2 2 0 2 2`
 
 ### Output
@@ -402,6 +413,7 @@ Accept these OCR shapes:
 - `71. 23`
 - `71 , 23`
 - `$4515`, when it appears on the payee/amount line and should normalize to `45.15`
+- `$-68.93-`, when OCR adds stray dash characters around the amount
 
 Reject likely non-amount lines such as:
 
@@ -487,11 +499,15 @@ Reject lines that are clearly:
 2. Prefer lines containing a cents suffix like `23/100`.
 3. If the amount words are split across two adjacent lines, merge only the nearest overlapping pair.
 4. If cents are split into separate OCR tokens, such as `Quarante cinq` + `15` + `100 DOLLARS`, merge them into `Quarante cinq 15/100 DOLLARS`.
-5. Clean the result:
+5. If OCR emits a malformed fraction split such as `Soixante quatorse` +
+   `68/10` + `100 DOLLARS`, normalize the fraction to
+   `Soixante quatorse 68/100 DOLLARS` and keep medium confidence because the
+   written words are OCR-damaged.
+6. Clean the result:
    - trim punctuation
    - collapse repeated spaces
    - normalize spaces around `/`
-6. Return the cleaned text as `check_amount_words`.
+7. Return the cleaned text as `check_amount_words`.
 
 #### Suggested parsing for confirmation
 
@@ -635,6 +651,10 @@ Accept a line as a `check_name` candidate when:
 - `top <= 0.24`
 - `left <= 0.40`
 - text contains mostly letters, spaces, apostrophes, periods, or `&`
+
+Allow a looser upper-left owner-name band up to about `top <= 0.26` when the
+whole check is shifted lower and the candidate still appears before the date,
+payee, bank, and coupon regions.
 
 Allow these name shapes:
 

@@ -260,12 +260,13 @@ function isPayeeCandidateText(text: string): boolean {
     !isCouponSubscriberLine(text) &&
     !/^\s*[-.,]/.test(text) &&
     !/^[-$.,\s]+$/.test(text) &&
+    !/^(?:[AMJYD]\s*){1,6}$/i.test(text) &&
     !/^(?:DATE|MEMO)$/i.test(text)
   );
 }
 
 function extractMoneyCandidate(text: string): string | null {
-  const match = text.match(/\$?\s*(\d{1,3})\s*[.,]\s*(\d{2})\s*\$?/);
+  const match = text.match(/\$?\s*-?\s*(\d{1,3})\s*[.,]\s*(\d{2})\s*-?\s*\$?/);
   if (match) {
     return `${match[1]}.${match[2]}`;
   }
@@ -280,13 +281,13 @@ function extractMoneyCandidate(text: string): string | null {
 }
 
 function normalizeCheckDateText(text: string): string | null {
-  const yearFirst = text.match(/(\d[\d ]{3,})\s*-\s*(\d[\d ]{0,1}\d)\s*-\s*(\d[\d ]{0,1}\d)/);
+  const yearFirst = text.match(/(\d[\d ]{3,})\s*-\s*(\d[\d ]{0,1}\d?)\s*-\s*(\d[\d ]{0,1}\d?)/);
   if (yearFirst) {
     const year = yearFirst[1].replace(/\s+/g, "");
     const month = yearFirst[2].replace(/\s+/g, "");
     const day = yearFirst[3].replace(/\s+/g, "");
-    if (/^\d{4}$/.test(year) && /^\d{2}$/.test(month) && /^\d{2}$/.test(day)) {
-      return parseLocalDate(`${year}-${month}-${day}`);
+    if (/^\d{4}$/.test(year) && /^\d{1,2}$/.test(month) && /^\d{1,2}$/.test(day)) {
+      return parseLocalDate(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
     }
   }
 
@@ -296,7 +297,7 @@ function normalizeCheckDateText(text: string): string | null {
 function extractCheckNumber(lines: OcrLine[], checkText: string): { value: string | null; meta?: ExtractionMeta } {
   const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
   const candidates = lines
-    .filter((line) => isWithinBand(line.top, 0, 0.24) && (!useHorizontalGeometry || line.left >= 0.58))
+    .filter((line) => isWithinBand(line.top, 0, 0.26) && (!useHorizontalGeometry || line.left >= 0.58))
     .map((line) => ({ line, digits: line.text.replace(/\s+/g, "") }))
     .filter(({ digits }) => /^\d{3,6}$/.test(digits))
     .sort((left, right) => (useHorizontalGeometry ? right.line.left - left.line.left : left.line.top - right.line.top) || left.line.top - right.line.top);
@@ -335,6 +336,14 @@ function extractCheckDate(lines: OcrLine[], checkText: string): { value: string 
           (/[\d-]/.test(line.text) || /^\d[\d\s-]+$/.test(line.text)),
       )
       .sort((left, right) => verticalDistance(anchor, left) - verticalDistance(anchor, right) || left.left - right.left);
+
+    const mergedNearby = normalizeCheckDateText([anchor.text, ...nearby.map((line) => line.text)].join(" "));
+    if (mergedNearby) {
+      return {
+        value: mergedNearby,
+        meta: buildMeta("medium", "normalized", ["Recovered the date from a DATE anchor plus nearby OCR fragments."]),
+      };
+    }
 
     for (const candidate of nearby) {
       const merged = normalizeCheckDateText(`${anchor.text} ${candidate.text}`);
@@ -386,7 +395,7 @@ function extractPayTo(lines: OcrLine[]): { value: string | null; meta?: Extracti
         return false;
       }
 
-      if (Math.abs(index - anchorIndex) > 3) {
+      if (Math.abs(index - anchorIndex) > 6) {
         return false;
       }
 
@@ -469,6 +478,13 @@ function extractCheckAmountWords(lines: OcrLine[]): string | null {
   );
   const normalizeWords = (text: string): string =>
     normalizeWhitespace(text.replace(/^\s*[-.,·]+/, "").replace(/\s*-\s*/g, "-").replace(/\s*\/\s*/g, " / "));
+  const isAmountWordLine = (line: OcrLine): boolean =>
+    hasMostlyLetters(line.text) &&
+    !/\d/.test(line.text) &&
+    !PAYEE_ANCHOR_PATTERN.test(line.text) &&
+    !BANK_LINE_PATTERN.test(line.text) &&
+    !/^(?:[AMJYD]\s*){1,6}$/i.test(line.text) &&
+    !/\b(MOD[ÈE]LE|CARACT[ÉE]RISTIQUES|S[ÉE]CURIT[ÉE]|D[ÉE]TAILS)\b/i.test(line.text);
   const nearbyCents = (candidate: OcrLine): OcrLine | undefined =>
     wordsBand.find(
       (line) =>
@@ -481,7 +497,10 @@ function extractCheckAmountWords(lines: OcrLine[]): string | null {
     wordsBand.find(
       (line) =>
         line !== candidate &&
-        (/\d{2}\s*\/\s*100/i.test(line.text) || /^100 DOLLARS/i.test(line.text) || /^[A-Z]\s*\/\s*100 DOLLARS/i.test(line.text)) &&
+        (/\d{2}\s*\/\s*100/i.test(line.text) ||
+          /\d{2}\s*\/\s*10$/i.test(line.text) ||
+          /^100 DOLLARS/i.test(line.text) ||
+          /^[A-Z]\s*\/\s*100 DOLLARS/i.test(line.text)) &&
         verticalDistance(candidate, line) <= 0.035,
     );
   const orderAnchor = lines.find((line) => /ORDER OF|L'ORDRE DE/i.test(line.text));
@@ -492,9 +511,7 @@ function extractCheckAmountWords(lines: OcrLine[]): string | null {
         line.top >= orderAnchor.top &&
         verticalDistance(orderAnchor, line) <= 0.03 &&
         line.top <= orderAnchor.top + 0.05 &&
-        hasMostlyLetters(line.text) &&
-        !PAYEE_ANCHOR_PATTERN.test(line.text) &&
-        !BANK_LINE_PATTERN.test(line.text),
+        isAmountWordLine(line),
     );
     if (candidate) {
       const centsLine = nearbyCents(candidate);
@@ -502,6 +519,8 @@ function extractCheckAmountWords(lines: OcrLine[]): string | null {
       const fractionText =
         fractionLine && centsLine && !/\d{2}\s*\/\s*100/i.test(fractionLine.text)
           ? `${centsLine.text}/${fractionLine.text}`
+          : fractionLine && /\d{2}\s*\/\s*10$/i.test(fractionLine.text)
+            ? `${fractionLine.text.replace(/\s*\/\s*10$/i, "")}/100 DOLLARS`
           : fractionLine?.text;
       return normalizeWords([candidate.text, fractionText].filter(Boolean).join(" "));
     }
@@ -528,7 +547,7 @@ function extractPayerName(lines: OcrLine[]): string | null {
   const candidates = lines
     .filter(
       (line) =>
-        isWithinBand(line.top, 0.14, 0.24) &&
+        isWithinBand(line.top, 0.14, 0.26) &&
         line.left <= 0.4 &&
         isLikelyCheckNameLine(line) &&
         !/\b(?:Bayard|Publication|Publications)\b/i.test(line.text),
@@ -759,8 +778,8 @@ function normalizeOcrDigits(text: string): string {
   return text.replace(/[Oo]/g, "0").replace(/[Il|]/g, "1");
 }
 
-function findStandaloneSixDigitTokens(text: string): string[] {
-  return [...normalizeOcrDigits(text).matchAll(/(?<!\d)(\d{6})(?!\d)/g)].map((match) => match[1]);
+function findStandaloneClientNumberTokens(text: string): string[] {
+  return [...normalizeOcrDigits(text).matchAll(/(?<!\d)(\d{6,7})(?!\d)/g)].map((match) => match[1]);
 }
 
 type ClientCandidate = {
@@ -785,17 +804,17 @@ function extractCouponClientNumber(lines: OcrLine[]): { value: string | null; me
     const hasSubscriberAnchor = /Pour l'abonnement de/i.test(text);
     const hasClientAnchor = /\bno\s*,?\s*de\s+client\b|\bno\s+client\b|\bNo\s+Client\s*#\b|#\s*CLIENT\b/i.test(text);
     const nearSubscriberBlock = subscriberAnchors.some((anchor) => verticalDistance(anchor, line) <= 0.035);
-    const sixDigitTokens = findStandaloneSixDigitTokens(text);
+    const clientNumberTokens = findStandaloneClientNumberTokens(text);
 
     if (hasSubscriberAnchor && hasClientAnchor) {
-      for (const value of sixDigitTokens) {
+      for (const value of clientNumberTokens) {
         candidates.push({ value, priority: 1, confidence: "high", source: "direct", line: text });
       }
       continue;
     }
 
     if (hasClientAnchor) {
-      for (const value of sixDigitTokens) {
+      for (const value of clientNumberTokens) {
         candidates.push({
           value,
           priority: hasSubscriberAnchor ? 1 : nearSubscriberBlock || subscriberAnchors.length === 0 ? 2 : 5,
@@ -808,14 +827,14 @@ function extractCouponClientNumber(lines: OcrLine[]): { value: string | null; me
     }
 
     if (hasSubscriberAnchor) {
-      for (const value of sixDigitTokens) {
+      for (const value of clientNumberTokens) {
         candidates.push({ value, priority: 3, confidence: "high", source: "direct", line: text });
       }
       continue;
     }
 
-    if (/^[A-Z]{3}\s+\d{6}\s+\d{1,2}\/\d{1,2}\/\d{4}$/i.test(text)) {
-      for (const value of sixDigitTokens) {
+    if (/^[A-Z]{3,4}\s+\d{6,7}\s+\d{1,2}\/\d{1,2}\/\d{4}$/i.test(text)) {
+      for (const value of clientNumberTokens) {
         candidates.push({ value, priority: 4, confidence: "medium", source: "fallback", line: text });
       }
     }
@@ -860,7 +879,7 @@ function extractCouponPromoCode(lines: OcrLine[]): { value: string | null; meta?
       .filter((line) => line.top >= 0.55)
       .flatMap((line) => {
         const upper = line.text.toUpperCase();
-        return [...upper.matchAll(/[A-Z]{3}[0-9]{4}[A-Z0-9]{2,}/g)].map((match) => ({
+        return [...upper.matchAll(/[A-Z]{3,4}[0-9]{4}[A-Z0-9]{2,}/g)].map((match) => ({
           value: match[0],
           cleanLine: upper.trim() === match[0],
           preferredBand: line.top >= 0.6 && line.top <= 0.72,
@@ -876,8 +895,11 @@ function extractCouponPromoCode(lines: OcrLine[]): { value: string | null; meta?
 
   if (values.length === 1) {
     const candidate = candidates.find((item) => item.value === values[0])!;
-    const year = Number(candidate.value.slice(3, 7));
-    const notes = year < 2020 || year > 2035 ? ["Promo token year digits may be OCR-damaged."] : undefined;
+    const numericBlock = Number(candidate.value.match(/[0-9]{4}/)?.[0] ?? NaN);
+    const notes =
+      Number.isFinite(numericBlock) && numericBlock < 2020 && numericBlock !== 2200
+        ? ["Promo token numeric block may be OCR-damaged."]
+        : undefined;
     return {
       value: candidate.value,
       meta: buildMeta(candidate.cleanLine && candidate.preferredBand && !notes ? "high" : "medium", candidate.cleanLine ? "direct" : "normalized", notes),
@@ -907,6 +929,10 @@ function leadingOptionMark(text: string): { mark: string | null; marked: boolean
 
   if (mark === "0") {
     return { mark, marked: false, unselected: true, score: -1 };
+  }
+
+  if (mark === "1" && !/^1\s+(?=(?:2\s*ans?|Extra|R[ée]gulier|6\s*mois))/i.test(trimmed)) {
+    return { mark: null, marked: false, unselected: false, score: 0 };
   }
 
   return { mark, marked: true, unselected: false, score: /[XxLM1]/.test(mark) ? 3 : 2 };
@@ -1045,7 +1071,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     const anchor = lines[subscriberAnchorIndex];
     const inline = anchor.text.match(/Pour l'abonnement de\s*:?\s*(.+?)(?:\s+no\s+de\s+client|\s*$)/i);
     if (inline?.[1]) {
-      subscriberName = normalizeWhitespace(inline[1].replace(/^\d{4,}\s+/, ""));
+      subscriberName = normalizeWhitespace(inline[1].replace(/^\d{4,}\s+/, "").replace(/\s+\d{6,7}\s*$/, ""));
       subscriberNameMeta = buildMeta("high", "direct");
     } else {
       const sameBand = lines.filter((line) => line.top >= anchor.top - 0.02 && line.top <= anchor.bottom + 0.02);
@@ -1059,11 +1085,11 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     }
   }
   const billToNameId =
-    lines.map((line) => line.text.match(/\b[A-Z]{3}\s*#\s*CLIENT\s*[:#]?\s*(\d{4,})/i)).find((match) => match)?.[1] ??
+    lines.map((line) => line.text.match(/\b[A-Z]{3,4}\s*#\s*CLIENT\s*[:#]?\s*(\d{4,})/i)).find((match) => match)?.[1] ??
     lines.map((line) => line.text.match(/No\s+Client\s*#\s*(\d{4,})/i)).find((match) => match)?.[1] ??
     null;
 
-  const offerCode = extractCouponPromoCode(lines);
+  const promoCode = extractCouponPromoCode(lines);
   const renewalCampaignCode =
     lines
       .map((line) => line.text.toUpperCase().replace(/\s+/g, "").match(/([A-Z]{3,4}LERE\d{2})/))
@@ -1078,10 +1104,11 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     null;
   const productName = detectProductName(lines);
   const options = lines.map((line) => parseCouponOption(line)).filter((line): line is ParsedCouponOption => line !== null);
-  const optionChoice = chooseCouponOption(options, extractCheckAmountFromLines(checkLines));
+  const checkAmountForOptionMatch = extractCheckAmountFromLines(checkLines) ?? extractCheckAmountNumeric(checkLines).value;
+  const optionChoice = chooseCouponOption(options, checkAmountForOptionMatch);
 
   const payerAnchorIndex = lines.findIndex(
-    (line) => offerCode.value !== null && line.text.toUpperCase().replace(/\s+/g, "").includes(offerCode.value),
+    (line) => promoCode.value !== null && line.text.toUpperCase().replace(/\s+/g, "").includes(promoCode.value),
   );
   const payerName = (() => {
     if (payerAnchorIndex !== -1) {
@@ -1128,7 +1155,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     billToNameId: billToNameId ?? null,
     payerName,
     payerAddress,
-    offerCode: offerCode.value,
+    promoCode: promoCode.value,
     renewalCampaignCode: renewalCampaignCode ?? null,
     renewalDate,
     paymentAmount: optionChoice.paymentAmount,
@@ -1144,7 +1171,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
       subscriberClientNumber: subscriberClientNumber.meta,
       subscriberName: subscriberNameMeta,
       billToNameId: billToNameId ? buildMeta("medium", "direct") : undefined,
-      offerCode: offerCode.meta,
+      promoCode: promoCode.meta,
       renewalCampaignCode: renewalCampaignCode ? buildMeta("medium", "direct") : undefined,
       selectedOption: optionChoice.selectedOptionMeta,
       paymentAmount: optionChoice.paymentAmountMeta,

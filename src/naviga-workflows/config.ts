@@ -70,7 +70,23 @@ const stepSchema = z.discriminatedUnion("type", [
     value: z.string().min(1),
   }),
   z.object({
+    type: z.literal("clickContainingText"),
+    target: z.string().min(1),
+    value: z.string().min(1),
+  }),
+  z.object({
     type: z.literal("fill"),
+    target: z.string().min(1),
+    value: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("type"),
+    target: z.string().min(1),
+    value: z.string().min(1),
+    delayMs: z.number().int().nonnegative().default(75),
+  }),
+  z.object({
+    type: z.literal("selectKendoDropDown"),
     target: z.string().min(1),
     value: z.string().min(1),
   }),
@@ -93,6 +109,24 @@ const stepSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("exportSubscriptionDetail"),
     outputPath: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("exportSubscriptionSummary"),
+    outputPath: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("validateRenewalArtifacts"),
+    couponExtractPath: z.string().min(1),
+    subscriptionSummaryPath: z.string().min(1),
+    checkExtractPath: z.string().min(1).optional(),
+  }),
+  z.object({
+    type: z.literal("completeRenewalCheckPayment"),
+    couponExtractPath: z.string().min(1),
+    subscriptionSummaryPath: z.string().min(1),
+    checkExtractPath: z.string().min(1).optional(),
+    depositBank: z.string().min(1).default("Checks CAD - BPC"),
+    duplicateCheckRetries: z.number().int().nonnegative().default(3),
   }),
 ]);
 

@@ -4,5 +4,17 @@ selectors:
     css: "#BatchId"
   batchLookupButton:
     css: "#BatchLookup"
+  promotionCodeInput:
+    css: "#InputData_PromotionId"
+  promotionCodeSearchResults:
+    css: "tbody tr[tabindex='0']"
+  termTimeInput:
+    css: "#InputData_BatchTerm"
+  subscriptionTypeDropdown:
+    css: "#InputData_SubscriptionType"
+  paymentTypeDropdown:
+    css: "#InputData_PaymentTypeCode"
+  updateButton:
+    css: "#elanmvc-circ-edit"
   addRenewalsButton:
     css: "#elanmvc-circ-add-subs"

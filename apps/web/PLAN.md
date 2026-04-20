@@ -44,7 +44,7 @@ artifacts/cases/:id/
 ## Real data notes (from case 2026-03-31T18-08-25Z_149774)
 
 **OCR fields surfaced:**
-- `subscriberName`, `subscriberClientNumber`, `billToNameId`, `payerName`, `payerAddress` (null), `productName` (null), `offerCode`, `paymentAmount`, `copies`, `options[]`, `selectedOption` (null), `rawTextPreview`
+- `subscriberName`, `subscriberClientNumber`, `billToNameId`, `payerName`, `payerAddress` (null), `productName` (null), `promoCode`, `paymentAmount`, `copies`, `options[]`, `selectedOption` (null), `rawTextPreview`
 
 **Naviga fields:**
 - `subscriberName`, `clientNumber`, `productName`, `billToName`, `billToNameId`, `renewalName`, `totalAmount`, `renewalTerm`, `term`

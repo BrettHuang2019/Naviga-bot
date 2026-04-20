@@ -10,12 +10,12 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 4. If you only need the local review UI, run `npm run dev:web`.
 5. If you only need the workflow CLI, run `npm run dev`.
 6. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
+7. For local batch-entry testing, pass a coupon extract report with `--coupon-extract <path>` so `NAVIGA_TERM_TIME` can be derived from `workflow/business-rules/subscription-term-time.yml`.
 
 Examples:
 
 ```bash
-npm run dev -- query-subscription --env:NAVIGA_QUERY=829999
-npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621
+npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621 --env:NAVIGA_PROMO_CODE=CUR2022AV1 --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
 ```
 
 The app config is `workflow/app.yml`. It selects browser settings, whether the browser stays open after the workflow, and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
@@ -24,7 +24,7 @@ If `artifacts/json/subscription-detail.json` and `artifacts/ocr/` are both prese
 
 ## Workflow structure
 
-- `workflow/workflows/*.yml`: business workflows such as `login` or `query-subscription`
+- `workflow/workflows/*.yml`: business workflows such as `login` or `add-subscription-to-batch`
 - `workflow/pages/*.yml`: reusable selector maps by page
 - `dependsOn`: compose workflows from shared prerequisites
 - `usePage`: activate a page selector file before `fill`, `click`, or `waitFor`
@@ -35,6 +35,7 @@ Supported workflow steps:
 - `pause`
 - `usePage`
 - `fill`
+- `selectKendoDropDown`
 - `click`
 - `waitFor`
 - `waitForUrl`
@@ -43,7 +44,7 @@ Supported workflow steps:
 Example:
 
 ```yaml
-id: query-subscription
+id: add-subscription-to-batch
 dependsOn:
   - login
 steps:
@@ -64,12 +65,12 @@ Run a specific workflow by id:
 ```bash
 npm run dev -- open-entry-site
 npm run dev -- login
-npm run dev -- query-subscription
+npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=<batch-id> --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
 ```
 
 Dependency workflows run automatically. For example:
 
-- `query-subscription` runs `login` first
+- `add-subscription-to-batch` runs `login` first
 - `login` runs `open-entry-site` first
 
 Recommended test order:
@@ -78,19 +79,7 @@ Recommended test order:
 2. Run `npm run dev -- open-entry-site`.
 3. Check the saved DOM snapshot in `artifacts/dom/` and update page selectors.
 4. Run `npm run dev -- login`.
-5. After login selectors are stable, run `npm run dev -- query-subscription --env:NAVIGA_QUERY=<client-number>`.
-
-The default workflow now performs this sequence with a 2 second pause between visible actions:
-
-1. Open site
-2. Enter username
-3. Enter password
-4. Click login
-5. Wait until the app leaves `login.aspx`
-6. Click the Subscriptions shortcut
-7. Wait for the subscription page
-8. Enter customer search client number `82999`
-9. Click customer search
+5. After login selectors are stable, run `npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=<batch-id> --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json`.
 
 Notes:
 

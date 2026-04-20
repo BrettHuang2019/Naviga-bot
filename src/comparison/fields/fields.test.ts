@@ -22,7 +22,7 @@ function createContext(overrides?: {
       billToNameId: "705965",
       payerName: "Francine Despots",
       payerAddress: "4985 Rue Joseph-Ponrouge, Longueuil QC J3Y 8W7",
-      offerCode: "POQ2200AV2",
+      promoCode: "POQ2200AV2",
       renewalCampaignCode: "POQLERE23",
       renewalDate: "04/10/2026",
       paymentAmount: 53.98,

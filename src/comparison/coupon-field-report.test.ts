@@ -13,7 +13,7 @@ const reportPath = path.join(rootDir, "artifacts", "json", "coupon-field-extract
 const couponFieldMap = {
   "Coupon Client ID": "subscriberClientNumber",
   "Coupon Option Chosen and Option Price": "selectedOption",
-  "Coupon Promo Code": "offerCode",
+  "Coupon Promo Code": "promoCode",
 } as const satisfies Record<string, keyof CouponExtraction>;
 
 type CouponRuleName = keyof typeof couponFieldMap;
@@ -146,7 +146,7 @@ test("extractCoupon covers and reports all fields documented in the Coupon OCR r
 
   assert.deepEqual(
     mappedFields.map((field) => field.extractorField),
-    ["subscriberClientNumber", "selectedOption", "offerCode"],
+    ["subscriberClientNumber", "selectedOption", "promoCode"],
   );
   assert.equal(files.length, payloads.length);
 });

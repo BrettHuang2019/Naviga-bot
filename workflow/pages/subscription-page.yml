@@ -1,5 +1,7 @@
 id: subscription-page
 selectors:
+  subscriptionIdInput:
+    css: "#tSubscriptionID"
   subscriptionHistoryGrid:
     css: "#SubscriptionHistoryGrid"
   enterSingleSubBatchShortcut:

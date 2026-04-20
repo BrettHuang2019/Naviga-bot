@@ -61,7 +61,7 @@ export type CouponExtraction = {
   billToNameId: string | null;
   payerName: string | null;
   payerAddress: string | null;
-  offerCode: string | null;
+  promoCode: string | null;
   renewalCampaignCode: string | null;
   renewalDate: string | null;
   paymentAmount: number | null;

@@ -12,6 +12,11 @@ import {
   loadWorkflowDefinitions,
 } from "../../src/naviga-workflows/index.js";
 import { processOcrPayload } from "../../src/worker/index.js";
+import { toNavigaPromotionLookupCode } from "../../src/worker/promotion-code.js";
+import {
+  resolveSubscriberClientNumberFromFile,
+  resolveSubscriptionTermTimeFromFile,
+} from "../../src/worker/subscription-term-time.js";
 
 function parseCliEnvOverrides(args: string[]): Record<string, string> {
   return args.reduce<Record<string, string>>((overrides, arg) => {
@@ -40,10 +45,14 @@ function parseCliEnvOverrides(args: string[]): Record<string, string> {
 function parseCliArgs(args: string[]): {
   selectedWorkflowId?: string;
   ocrFilePath?: string;
+  couponExtractPath?: string;
   envOverrides: Record<string, string>;
+  keepOpen?: boolean;
 } {
   let selectedWorkflowId: string | undefined;
   let ocrFilePath: string | undefined;
+  let couponExtractPath: string | undefined;
+  let keepOpen: boolean | undefined;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -51,6 +60,17 @@ function parseCliArgs(args: string[]): {
     if (arg === "--ocr-file") {
       ocrFilePath = args[index + 1];
       index += 1;
+      continue;
+    }
+
+    if (arg === "--coupon-extract") {
+      couponExtractPath = args[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--no-keep-open") {
+      keepOpen = false;
       continue;
     }
 
@@ -62,7 +82,9 @@ function parseCliArgs(args: string[]): {
   return {
     selectedWorkflowId,
     ocrFilePath,
+    couponExtractPath,
     envOverrides: parseCliEnvOverrides(args),
+    keepOpen,
   };
 }
 
@@ -92,19 +114,52 @@ async function maybeRunRenewalVerification(rootDir: string): Promise<void> {
   }
 }
 
-async function runWorkflowCli(rootDir: string, selectedWorkflowId: string | undefined, envOverrides: Record<string, string>): Promise<void> {
+async function runWorkflowCli(
+  rootDir: string,
+  selectedWorkflowId: string | undefined,
+  envOverrides: Record<string, string>,
+  options: { keepOpen?: boolean } = {},
+): Promise<void> {
   const fileEnv = await loadEnv(rootDir);
   const env = {
     ...fileEnv,
     ...envOverrides,
   };
+  if (env.NAVIGA_PROMO_CODE && !env.NAVIGA_PROMO_LOOKUP_CODE) {
+    env.NAVIGA_PROMO_LOOKUP_CODE = toNavigaPromotionLookupCode(env.NAVIGA_PROMO_CODE);
+  }
+  const couponExtractPath = env.NAVIGA_COUPON_EXTRACT_PATH;
+  if (couponExtractPath && !env.NAVIGA_TERM_TIME) {
+    env.NAVIGA_TERM_TIME = await resolveSubscriptionTermTimeFromFile(rootDir, couponExtractPath);
+  }
+  if (couponExtractPath) {
+    env.NAVIGA_QUERY = await resolveSubscriberClientNumberFromFile(couponExtractPath);
+  }
   const appConfig = await loadAppConfig(rootDir);
+  const keepOpen = options.keepOpen ?? appConfig.browser.keepOpen;
   const workflows = await loadWorkflowDefinitions(rootDir);
   const pages = await loadPageDefinitions(rootDir);
   const workflowId = selectedWorkflowId ?? appConfig.defaultWorkflow;
 
+  if (!env.NAVIGA_TERM_TIME && JSON.stringify(workflows.get(workflowId)).includes("env:NAVIGA_TERM_TIME")) {
+    throw new Error(
+      `Workflow "${workflowId}" requires NAVIGA_TERM_TIME. Pass --coupon-extract <path> so it can be derived, or set NAVIGA_TERM_TIME explicitly.`,
+    );
+  }
+
+  if (!env.NAVIGA_QUERY && JSON.stringify(workflows.get(workflowId)).includes("env:NAVIGA_QUERY")) {
+    throw new Error(
+      `Workflow "${workflowId}" requires NAVIGA_QUERY. Pass --coupon-extract <path> so it can be derived, or set NAVIGA_QUERY explicitly.`,
+    );
+  }
+
   if (!env.NAVIGA_SUBSCRIPTION_OUTPUT_PATH) {
     env.NAVIGA_SUBSCRIPTION_OUTPUT_PATH = path.join(rootDir, "artifacts", "json", "subscription-detail.json");
+  }
+  if (!env.NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH) {
+    env.NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH = couponExtractPath
+      ? path.join(path.dirname(couponExtractPath), "Naviga-subscription-summary.json")
+      : path.join(rootDir, "artifacts", "json", "Naviga-subscription-summary.json");
   }
 
   const browser = await chromium.launch({
@@ -143,19 +198,30 @@ async function runWorkflowCli(rootDir: string, selectedWorkflowId: string | unde
     }
   });
 
-  await executeWorkflow(
-    workflowId,
-    page,
-    {
-      env,
-      workflows,
-      pages,
-      rootDir,
-    },
-    async () => {
-      await snapshotRecorder.capture(page);
-    },
-  );
+  try {
+    await executeWorkflow(
+      workflowId,
+      page,
+      {
+        env,
+        workflows,
+        pages,
+        rootDir,
+      },
+      async () => {
+        await snapshotRecorder.capture(page);
+      },
+    );
+  } catch (error: unknown) {
+    if (!keepOpen) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    console.error(message);
+    console.log("Workflow stopped. Browser remains open on the current page. Press Ctrl+C in this terminal to stop the process.");
+    await new Promise(() => {});
+  }
 
   const workflowRoot = path.join(rootDir, "workflow");
   console.log(`Workflow root loaded from ${workflowRoot}`);
@@ -166,7 +232,7 @@ async function runWorkflowCli(rootDir: string, selectedWorkflowId: string | unde
 
   await maybeRunRenewalVerification(rootDir);
 
-  if (appConfig.browser.keepOpen) {
+  if (keepOpen) {
     console.log("Browser remains open. Press Ctrl+C in this terminal to stop the process.");
     await new Promise(() => {});
   }
@@ -176,7 +242,11 @@ async function runWorkflowCli(rootDir: string, selectedWorkflowId: string | unde
 
 async function main(): Promise<void> {
   const rootDir = process.cwd();
-  const { selectedWorkflowId, ocrFilePath, envOverrides } = parseCliArgs(process.argv.slice(2));
+  const { selectedWorkflowId, ocrFilePath, couponExtractPath, envOverrides, keepOpen } = parseCliArgs(process.argv.slice(2));
+  const effectiveEnvOverrides = {
+    ...envOverrides,
+    ...(couponExtractPath ? { NAVIGA_COUPON_EXTRACT_PATH: couponExtractPath } : {}),
+  };
 
   if (ocrFilePath) {
     const appConfig = await loadAppConfig(rootDir);
@@ -189,11 +259,11 @@ async function main(): Promise<void> {
 
     console.log(`Stored case -> ${storedCase.paths.caseFile}`);
     console.log(`Subscriber client number: ${storedCase.subscriberClientNumber ?? "<missing>"}`);
-    console.log(`Recommendation: ${storedCase.verification.recommendation}`);
+    console.log(`Recommendation: ${storedCase.verification?.recommendation ?? "<missing>"}`);
     return;
   }
 
-  await runWorkflowCli(rootDir, selectedWorkflowId, envOverrides);
+  await runWorkflowCli(rootDir, selectedWorkflowId, effectiveEnvOverrides, { keepOpen });
 }
 
 main().catch((error: unknown) => {

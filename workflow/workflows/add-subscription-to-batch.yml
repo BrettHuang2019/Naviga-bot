@@ -1,5 +1,5 @@
 id: add-subscription-to-batch
-description: Open the site and log in as the starting point for adding a subscription to a batch.
+description: Open an existing batch, update renewal settings, search the coupon subscriber, and start a renewal subscription.
 dependsOn:
   - login
 steps:
@@ -40,6 +40,44 @@ steps:
     target: addRenewalsButton
   - type: pause
     ms: 2000
+  - type: waitFor
+    target: promotionCodeInput
+  - type: pause
+    ms: 2000
+  - type: type
+    target: promotionCodeInput
+    value: env:NAVIGA_PROMO_LOOKUP_CODE
+    delayMs: 150
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: promotionCodeSearchResults
+  - type: clickContainingText
+    target: promotionCodeSearchResults
+    value: env:NAVIGA_PROMO_LOOKUP_CODE
+  - type: pause
+    ms: 2000
+  - type: fill
+    target: termTimeInput
+    value: env:NAVIGA_TERM_TIME
+  - type: pause
+    ms: 2000
+  - type: selectKendoDropDown
+    target: subscriptionTypeDropdown
+    value: Paid
+  - type: pause
+    ms: 2000
+  - type: selectKendoDropDown
+    target: paymentTypeDropdown
+    value: Check
+  - type: pause
+    ms: 2000
+  - type: click
+    target: updateButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: addRenewalsButton
   - type: click
     target: addRenewalsButton
   - type: pause
@@ -90,3 +128,19 @@ steps:
     ms: 2000
   - type: waitForUrl
     urlIncludes: NewSubInRenewalBatch=1
+  - type: usePage
+    page: subscription-page
+  - type: waitFor
+    target: subscriptionIdInput
+  - type: pause
+    ms: 2000
+  - type: exportSubscriptionSummary
+    outputPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+  - type: validateRenewalArtifacts
+    couponExtractPath: env:NAVIGA_COUPON_EXTRACT_PATH
+    subscriptionSummaryPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+  - type: completeRenewalCheckPayment
+    couponExtractPath: env:NAVIGA_COUPON_EXTRACT_PATH
+    subscriptionSummaryPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+    depositBank: Checks CAD - BPC
+    duplicateCheckRetries: 3
