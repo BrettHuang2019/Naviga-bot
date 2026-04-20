@@ -2,28 +2,22 @@
 
 ## Stack
 - Express (already running) — serves API + static files + server-rendered HTML
-- HTMX — reviewer actions without page reloads
 - Plain HTML/CSS — no build step, no framework
 
 ## Pages
 
 ### 1. Case List `GET /`
-- Read all `artifacts/cases/*/case.json`
+- Read all `artifacts/cases/*/case.json` and `pipeline.json`
 - Show table: Case ID, Created, Subscriber, Product, Score, Status
-- Status comes from `decision.json` (pending / approved / flagged)
+- Status comes from pipeline outcome (`pending` / `queued` / `running` / `succeeded` / `failed`)
 
 ### 2. Case Detail `GET /cases/:id`
 - Three columns side by side:
-  - **Coupon (OCR)** — fields from `case.ocrExtraction` + coupon image from `case.imageLink`
-  - **Naviga** — fields from `case.subscription`
-  - **Checks** — score + field-by-field from `case.verification.bestCandidate.checks`
-- Recommendation box in the header
-- Decision bar at the bottom (Approve / Flag buttons via HTMX)
-
-### 3. Decision `POST /cases/:id/decision`
-- HTMX endpoint — saves `decision.json` in the case folder
-- Returns HTML fragment to swap the buttons with a status badge
-- Payload: `{ status: "approved" | "flagged" }`
+  - **Check extract** — check fields parsed from OCR
+  - **Coupon extract** — coupon fields parsed from OCR
+  - **Naviga subscription summary** — fields captured by batch workflow
+- Pipeline section shows OCR + batch step status and batch stack on failure
+- Recommendation box in the header mirrors pipeline outcome
 
 ## Files
 
@@ -37,19 +31,22 @@
 
 ```
 artifacts/cases/:id/
-  case.json          → identity + OCR extraction + subscription + checks
-  decision.json      → reviewer decision (written on POST /cases/:id/decision)
+  case.json          → identity + OCR extraction metadata
+  check-extract.json → check OCR fields
+  coupon-extract.json → coupon OCR fields
+  Naviga-subscription-summary.json → batch workflow capture
+  pipeline.json      → OCR + batch workflow status
 ```
 
 ## Real data notes (from case 2026-03-31T18-08-25Z_149774)
 
-**OCR fields surfaced:**
-- `subscriberName`, `subscriberClientNumber`, `billToNameId`, `payerName`, `payerAddress` (null), `productName` (null), `promoCode`, `paymentAmount`, `copies`, `options[]`, `selectedOption` (null), `rawTextPreview`
+**Coupon fields surfaced:**
+- `subscriberClientNumber`, `selectedOption`, `promoCode`, `allOptions[]`, `rawTextPreview`
 
 **Naviga fields:**
-- `subscriberName`, `clientNumber`, `productName`, `billToName`, `billToNameId`, `renewalName`, `totalAmount`, `renewalTerm`, `term`
+- `subscriber.name`, `subscriber.id`, `deliveryAddress`, `promotion`, `termDetails.term`, `pricingDetails.total`
 
-**Check statuses:** `match` | `mismatch` | `missing` | `partial`
+**Check fields surfaced:** `checkNumber`, `date`, `payTo`, `amountNumber`, `amountWords`, `payerName`, `payerAddress`
 
 **Coupon image** is a SharePoint URL (`imageLink`) — rendered as an external link (no embed, auth-gated).
 

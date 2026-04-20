@@ -40,6 +40,8 @@ body {
 .case-id { font-size: 1.125rem; font-weight: 600; }
 .case-created { color: #64748b; font-size: 0.8rem; margin-top: 0.125rem; }
 .recommendation-box { background: #fef9c3; border: 1px solid #fde68a; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.8rem; color: #78350f; max-width: 520px; }
+.recommendation-box.succeeded { background: #dcfce7; border-color: #86efac; color: #166534; }
+.recommendation-box.failed { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
 
 /* Detail layout */
 .case-columns { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
@@ -56,6 +58,7 @@ body {
 /* Field rows */
 .field-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; border-bottom: 1px solid #f1f5f9; gap: 0.75rem; }
 .field-row:last-child { border-bottom: none; }
+.field-row-empty .field-label { visibility: hidden; }
 .field-label { color: #6b7280; font-size: 0.75rem; flex-shrink: 0; }
 .field-value { font-weight: 500; text-align: right; word-break: break-word; }
 .field-value.null { color: #94a3b8; font-style: italic; font-weight: normal; }
@@ -101,9 +104,9 @@ body {
 .validation-list { display: grid; }
 .validation-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 0.875rem 1rem; border-bottom: 1px solid #f1f5f9; border-left: 4px solid transparent; }
 .validation-row:last-child { border-bottom: none; }
-.validation-row.ok { border-left-color: #22c55e; }
-.validation-row.warning { border-left-color: #f59e0b; }
-.validation-row.error { border-left-color: #dc2626; }
+.validation-row.ok { background: #f0fdf4; border-left-color: #22c55e; }
+.validation-row.warning { background: #fffbeb; border-left-color: #f59e0b; }
+.validation-row.error { background: #fef2f2; border-left-color: #dc2626; }
 .validation-main { min-width: 0; flex: 1; }
 .validation-title { font-weight: 700; font-size: 0.875rem; }
 .validation-message { color: #4b5563; font-size: 0.78rem; margin-top: 0.15rem; }
@@ -115,24 +118,19 @@ body {
 .validation-badge.ok { background: #dcfce7; color: #15803d; }
 .validation-badge.warning { background: #fef3c7; color: #92400e; }
 .validation-badge.error { background: #fee2e2; color: #dc2626; }
+.status-icon { display: inline-flex; align-items: center; justify-content: center; width: 1em; margin-right: 0.3rem; font-weight: 800; }
 
-/* Decision bar */
-.decision-section { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.decision-label { font-weight: 600; font-size: 0.875rem; color: #374151; }
 .btn { padding: 0.45rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
 .btn:hover { filter: brightness(0.92); }
-.btn-approve { background: #22c55e; color: white; }
-.btn-flag    { background: #f59e0b; color: white; }
 .btn-danger  { background: #dc2626; color: white; }
-.decision-status { font-size: 0.875rem; padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600; }
-.decision-status.approved { background: #dcfce7; color: #15803d; }
-.decision-status.flagged  { background: #fef3c7; color: #92400e; }
 
 /* Status badge in list */
 .status-badge { font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 9999px; }
 .status-badge.pending  { background: #f1f5f9; color: #64748b; }
-.status-badge.approved { background: #dcfce7; color: #15803d; }
-.status-badge.flagged  { background: #fef3c7; color: #92400e; }
+.status-badge.queued,
+.status-badge.running { background: #dbeafe; color: #1d4ed8; }
+.status-badge.succeeded { background: #dcfce7; color: #15803d; }
+.status-badge.failed { background: #fee2e2; color: #dc2626; }
 
 @media (max-width: 960px) {
   .case-columns { grid-template-columns: 1fr; }

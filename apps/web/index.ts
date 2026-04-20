@@ -107,11 +107,6 @@ function getIncomeExtraction(c: StoredCase): IncomeExtraction {
   return c.incomeExtraction;
 }
 
-type Decision = {
-  status: "approved" | "flagged";
-  decidedAt: string;
-};
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -177,6 +172,10 @@ function esc(s: string): string {
 
 function fieldRow(label: string, value: string | number | null | undefined): string {
   return `<div class="field-row"><span class="field-label">${esc(label)}</span>${fmt(value)}</div>`;
+}
+
+function emptyFieldRow(label: string): string {
+  return `<div class="field-row field-row-empty"><span class="field-label">${esc(label)}</span><span class="field-value null"></span></div>`;
 }
 
 function formatCurrency(value: number | null | undefined): string | null {
@@ -295,7 +294,8 @@ type ValidationRow = {
 
 function validationBadge(status: ValidationStatus): string {
   const label = status === "ok" ? "OK" : status === "warning" ? "Warning" : "Error";
-  return `<span class="validation-badge ${status}">${label}</span>`;
+  const icon = status === "ok" ? "✓" : status === "warning" ? "!" : "×";
+  return `<span class="validation-badge ${status}"><span class="status-icon">${icon}</span>${label}</span>`;
 }
 
 function validationValue(label: string, value: string | number | null | undefined): string {
@@ -347,7 +347,6 @@ function layout(title: string, breadcrumb: string, body: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${esc(title)} — Naviga Review</title>
   <link rel="stylesheet" href="/style.css"/>
-  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -365,9 +364,20 @@ function layout(title: string, breadcrumb: string, body: string): string {
 // HTML templates
 // ---------------------------------------------------------------------------
 
-function caseListHtml(rows: { c: StoredCase; decision: Decision | null }[]): string {
-  const tableRows = rows.map(({ c, decision }) => {
-    const status = decision?.status ?? "pending";
+function casePipelineOutcome(pipeline: CasePipelineStatus | null): WorkflowRunStatus | "pending" {
+  const statuses = [
+    pipeline?.ocrExtraction?.status,
+    pipeline?.batchWorkflow?.status,
+    pipeline?.subscriptionWorkflow?.status,
+  ];
+  if (statuses.includes("failed")) return "failed";
+  if (pipeline?.ocrExtraction?.status === "succeeded" && pipeline?.batchWorkflow?.status === "succeeded") return "succeeded";
+  return pipeline?.batchWorkflow?.status ?? pipeline?.ocrExtraction?.status ?? "pending";
+}
+
+function caseListHtml(rows: { c: StoredCase; pipeline: CasePipelineStatus | null }[]): string {
+  const tableRows = rows.map(({ c, pipeline }) => {
+    const status = casePipelineOutcome(pipeline);
     const score = c.verification?.bestCandidate?.score ?? "—";
     const subscriberName = c.subscription?.subscriberName ?? c.ocrExtraction.subscriberName ?? "—";
     const productName = c.subscription?.productName ?? c.ocrExtraction.productName ?? "—";
@@ -405,18 +415,14 @@ function caseListHtml(rows: { c: StoredCase; decision: Decision | null }[]): str
   return layout("Cases", "", body);
 }
 
-function decisionFragment(status: "approved" | "flagged"): string {
-  return `<span class="decision-status ${esc(status)}">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</span>`;
-}
-
 function pipelineStageBadge(status: string | null | undefined): string {
   const label = status ?? "pending";
-  return `<span class="status-badge ${esc(label)}">${esc(label)}</span>`;
+  const icon = label === "succeeded" ? "✓" : label === "failed" ? "×" : label === "running" || label === "queued" ? "…" : "!";
+  return `<span class="status-badge ${esc(label)}"><span class="status-icon">${icon}</span>${esc(label)}</span>`;
 }
 
 function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
   const ocrStatus = pipeline?.ocrExtraction?.status ?? "pending";
-  const subscriptionStatus = pipeline?.subscriptionWorkflow?.status;
   const batchStatus = pipeline?.batchWorkflow?.status;
   const batchError = pipeline?.batchWorkflow?.error;
 
@@ -430,7 +436,7 @@ function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
   return `<section class="validate-section">
     <div class="section-heading">
       <h2>Pipeline</h2>
-      <span>OCR → (optional) subscription lookup → batch workflow</span>
+      <span>OCR extraction → batch workflow</span>
     </div>
     <div class="validation-list">
       <div class="validation-row ${esc(ocrStatus === "failed" ? "error" : ocrStatus === "succeeded" ? "ok" : "warning")}">
@@ -439,13 +445,6 @@ function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
           <div class="validation-message">Case intake + coupon/check extraction</div>
         </div>
         ${pipelineStageBadge(ocrStatus as WorkflowRunStatus)}
-      </div>
-      <div class="validation-row ${esc(subscriptionStatus === "failed" ? "error" : subscriptionStatus === "succeeded" ? "ok" : "warning")}">
-        <div class="validation-main">
-          <div class="validation-title">Subscription lookup</div>
-          <div class="validation-message">Pull subscription detail (for review)</div>
-        </div>
-        ${pipelineStageBadge(subscriptionStatus)}
       </div>
       <div class="validation-row ${esc(batchStatus === "failed" ? "error" : batchStatus === "succeeded" ? "ok" : "warning")}">
         <div class="validation-main">
@@ -569,7 +568,7 @@ function validationSectionHtml(rows: ValidationRow[]): string {
   </section>`;
 }
 
-function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: CaseArtifacts): string {
+function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
   const income = getIncomeExtraction(c);
   const coupon = income.coupon;
   const promoCode = coupon.promoCode ?? (coupon as CouponExtraction & { offerCode?: string | null }).offerCode ?? null;
@@ -619,21 +618,31 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
   const couponClientNumber = firstValue(extractFieldValue<string>(artifacts.couponExtract, "subscriberClientNumber"), coupon.subscriberClientNumber);
   const couponSelectedOption = firstValue(couponOption?.option, coupon.selectedOption?.raw);
   const couponPrice = normalizeAmount(firstValue<string | number>(couponOption?.price, coupon.paymentAmount));
+  const couponPromoCode = firstValue(extractFieldValue<string>(artifacts.couponExtract, "promoCode"), promoCode);
   const couponRawText = firstValue(artifacts.couponExtract?.rawTextPreview, coupon.rawTextPreview);
   const checkAmount = normalizeAmount(firstValue(extractFieldValue<number>(artifacts.checkExtract, "amountNumber"), check.amountNumber));
   const checkRawText = firstValue(artifacts.checkExtract?.rawTextPreview, check.rawTextPreview);
+  const checkNumber = firstValue(extractFieldValue<string>(artifacts.checkExtract, "checkNumber"), check.checkNumber);
+  const checkDate = firstValue(extractFieldValue<string>(artifacts.checkExtract, "date"), check.date);
+  const checkPayTo = firstValue(extractFieldValue<string>(artifacts.checkExtract, "payTo"), check.payTo);
+  const checkName = firstValue(extractFieldValue<string>(artifacts.checkExtract, "payerName"), check.payerName);
+  const checkAddress = firstValue(extractFieldValue<string>(artifacts.checkExtract, "payerAddress"), check.payerAddress);
+  const checkAmountWords = firstValue(extractFieldValue<string>(artifacts.checkExtract, "amountWords"), check.amountWords);
 
   const checkCol = `
     <div class="column-card">
       <div class="column-header check">Check extract</div>
       <div class="column-body">
-        ${fieldRow("Check number", firstValue(extractFieldValue<string>(artifacts.checkExtract, "checkNumber"), check.checkNumber))}
-        ${fieldRow("Date", firstValue(extractFieldValue<string>(artifacts.checkExtract, "date"), check.date))}
-        ${fieldRow("Pay to", firstValue(extractFieldValue<string>(artifacts.checkExtract, "payTo"), check.payTo))}
-        ${fieldRow("Price in number", formatCurrency(checkAmount))}
-        ${fieldRow("Price in words", firstValue(extractFieldValue<string>(artifacts.checkExtract, "amountWords"), check.amountWords))}
-        ${fieldRow("Name", firstValue(extractFieldValue<string>(artifacts.checkExtract, "payerName"), check.payerName))}
-        ${fieldRow("Address", firstValue(extractFieldValue<string>(artifacts.checkExtract, "payerAddress"), check.payerAddress))}
+        ${emptyFieldRow("Client number")}
+        ${fieldRow("Name", checkName)}
+        ${fieldRow("Address", checkAddress)}
+        ${emptyFieldRow("Promo code")}
+        ${emptyFieldRow("Term/issues")}
+        ${fieldRow("Price", formatCurrency(checkAmount))}
+        ${fieldRow("Price in words", checkAmountWords)}
+        ${fieldRow("Check number", checkNumber)}
+        ${fieldRow("Check date", checkDate)}
+        ${fieldRow("Pay to", checkPayTo)}
         ${checkRawText ? `<details class="raw-text-wrap">
           <summary>Check extract text</summary>
           <pre class="raw-text-content">${esc(checkRawText.replace(/\s*\|\s*/g, "\n"))}</pre>
@@ -645,17 +654,16 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
     <div class="column-card">
       <div class="column-header coupon">Coupon extract</div>
       <div class="column-body">
-        ${fieldRow("Subscriber name", coupon.subscriberName)}
         ${fieldRow("Client number", couponClientNumber)}
-        ${fieldRow("Client ID", coupon.billToNameId)}
-        ${fieldRow("Client name", coupon.payerName)}
-        ${fieldRow("Promo code", promoCode)}
-        ${fieldRow("Campaign code", coupon.renewalCampaignCode)}
-        ${fieldRow("Renewal date", coupon.renewalDate)}
-        ${fieldRow("Product name", coupon.productName)}
-        ${fieldRow("Option chosen", couponSelectedOption)}
+        ${emptyFieldRow("Name")}
+        ${emptyFieldRow("Address")}
+        ${fieldRow("Promo code", couponPromoCode)}
+        ${fieldRow("Term/issues", couponSelectedOption)}
         ${fieldRow("Price", formatCurrency(couponPrice))}
-        ${fieldRow("Copies", coupon.copies)}
+        ${emptyFieldRow("Price in words")}
+        ${emptyFieldRow("Check number")}
+        ${emptyFieldRow("Check date")}
+        ${emptyFieldRow("Pay to")}
         ${optionsHtml ? `<div class="field-row"><span class="field-label">Options</span>${optionsHtml}</div>` : ""}
         ${imageHtml}
         ${couponRawText ? `<details class="raw-text-wrap">
@@ -670,36 +678,24 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
     <div class="column-card">
       <div class="column-header naviga">Naviga subscription summary</div>
       <div class="column-body">
-        ${fieldRow("Captured", navigaCapturedAt)}
-        ${fieldRow("Subscriber name", navigaSubscriberName)}
         ${fieldRow("Client number", navigaClientNumber)}
-        ${fieldRow("Product", sub?.productName ?? null)}
-        ${fieldRow("Bill-to name", sub?.billToName ?? null)}
-        ${fieldRow("Bill-to name ID", sub?.billToNameId ?? null)}
-        ${fieldRow("Renewal name", sub?.renewalName ?? null)}
-        ${fieldRow("Delivery address", navigaAddress)}
-        ${fieldRow("Promotion", artifacts.navigaSummary?.promotion ?? null)}
-        ${fieldRow("Total amount", formatCurrency(navigaPrice))}
-        ${fieldRow("Term", navigaTerm ? `${navigaTerm} issues` : null)}
+        ${fieldRow("Name", navigaSubscriberName)}
+        ${fieldRow("Address", navigaAddress)}
+        ${fieldRow("Promo code", artifacts.navigaSummary?.promotion ?? null)}
+        ${fieldRow("Term/issues", navigaTerm ? `${navigaTerm} issues` : null)}
+        ${fieldRow("Price", formatCurrency(navigaPrice))}
+        ${emptyFieldRow("Price in words")}
+        ${emptyFieldRow("Check number")}
+        ${emptyFieldRow("Check date")}
+        ${emptyFieldRow("Pay to")}
+        ${fieldRow("Captured", navigaCapturedAt)}
         ${navigaLinkHtml}
       </div>
     </div>`;
-
-  // --- Decision bar ---
-  const decisionHtml = decision
-    ? decisionFragment(decision.status)
-    : `<button class="btn btn-approve"
-          hx-post="/cases/${esc(c.id)}/decision"
-          hx-vals='{"status":"approved"}'
-          hx-target="#decision-area"
-          hx-swap="innerHTML">Approve</button>
-       <button class="btn btn-flag"
-          hx-post="/cases/${esc(c.id)}/decision"
-          hx-vals='{"status":"flagged"}'
-          hx-target="#decision-area"
-          hx-swap="innerHTML">Flag</button>`;
-
-  const recommendation = c.verification?.recommendation ?? (artifacts.pipeline?.batchWorkflow?.status === "failed" ? "Batch failed" : "Pending");
+  const pipelineOutcome = casePipelineOutcome(artifacts.pipeline);
+  const recommendation =
+    c.verification?.recommendation ??
+    (pipelineOutcome === "succeeded" ? "Success" : pipelineOutcome === "failed" ? "Failed" : "Pending");
 
   const body = `
     <div class="case-header">
@@ -707,7 +703,7 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
         <div class="case-id">${esc(c.id)}</div>
         <div class="case-created">${esc(new Date(c.createdAt).toLocaleString())}</div>
       </div>
-      <div class="recommendation-box">${esc(recommendation)}</div>
+      <div class="recommendation-box ${esc(pipelineOutcome)}">${esc(recommendation)}</div>
     </div>
     ${pipelineHtml}
     <div class="case-source-columns">
@@ -715,11 +711,7 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
       ${couponCol}
       ${navigaCol}
     </div>
-    ${validationSectionHtml(validationRows)}
-    <div class="decision-section">
-      <span class="decision-label">Decision:</span>
-      <div id="decision-area">${decisionHtml}</div>
-    </div>`;
+    ${validationSectionHtml(validationRows)}`;
 
   const breadcrumb = `<a href="/">← All cases</a>`;
   return layout(c.id, breadcrumb, body);
@@ -732,6 +724,11 @@ function caseDetailHtml(c: StoredCase, decision: Decision | null, artifacts: Cas
 function createReviewRouter(rootDir: string): Router {
   const casesDir = path.join(rootDir, "artifacts", "cases");
   const router = Router();
+
+  router.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
 
   // GET / — case list
   router.get("/", async (_req: Request, res: Response) => {
@@ -746,15 +743,14 @@ function createReviewRouter(rootDir: string): Router {
       await Promise.all(
         entries.map(async (id) => {
           const caseFile = path.join(casesDir, id, "case.json");
-          const decisionFile = path.join(casesDir, id, "decision.json");
           const c = await readJsonOrNull<StoredCase>(caseFile);
           if (!c) return null;
-          const decision = await readJsonOrNull<Decision>(decisionFile);
-          return { c, decision };
+          const artifacts = await readCaseArtifacts(casesDir, id);
+          return { c, pipeline: artifacts.pipeline };
         })
       )
     )
-      .filter((r): r is { c: StoredCase; decision: Decision | null } => r !== null)
+      .filter((r): r is { c: StoredCase; pipeline: CasePipelineStatus | null } => r !== null)
       .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt));
 
     res.send(caseListHtml(rows));
@@ -782,52 +778,13 @@ function createReviewRouter(rootDir: string): Router {
   router.get("/cases/:id", async (req: Request, res: Response) => {
     const id = String(req.params["id"]);
     const caseFile = path.join(casesDir, id, "case.json");
-    const decisionFile = path.join(casesDir, id, "decision.json");
     const c = await readJsonOrNull<StoredCase>(caseFile);
     if (!c) {
       res.status(404).send("Case not found");
       return;
     }
-    const decision = await readJsonOrNull<Decision>(decisionFile);
     const artifacts = await readCaseArtifacts(casesDir, id);
-    res.send(caseDetailHtml(c, decision, artifacts));
-  });
-
-  // POST /cases/:id/decision — HTMX decision endpoint
-  router.post("/cases/:id/decision", async (req: Request, res: Response) => {
-    const id = String(req.params["id"]);
-    const status = req.body?.status;
-    if (status !== "approved" && status !== "flagged") {
-      res.status(400).send("Invalid status");
-      return;
-    }
-    const decisionFile = path.join(casesDir, id, "decision.json");
-    const decision: Decision = { status, decidedAt: new Date().toISOString() };
-    await fs.writeFile(decisionFile, JSON.stringify(decision, null, 2), "utf8");
-    res.send(decisionFragment(status));
-
-    if (status === "approved") {
-      const caseFile = path.join(casesDir, id, "case.json");
-      const storedCase = await readJsonOrNull<StoredCase>(caseFile);
-      const subscriberClientNumber = storedCase?.subscriberClientNumber ?? null;
-      const offerCode = storedCase ? (storedCase.ocrExtraction as CouponExtraction & { offerCode?: string | null }).offerCode ?? null : null;
-      if (storedCase && subscriberClientNumber) {
-        runBatchWorkflow({
-          subscriberClientNumber,
-          promoCode: storedCase.ocrExtraction.promoCode ?? offerCode,
-          couponExtraction: storedCase.ocrExtraction,
-          couponExtractPath: storedCase.paths.couponExtract,
-          pipelinePath: storedCase.paths.pipeline,
-          rootDir,
-          workflowId: "add-subscription-to-batch",
-          keepOpen: true,
-        })
-          .catch((err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
-            console.error(`Batch workflow failed for case ${id}: ${message}`);
-          });
-      }
-    }
+    res.send(caseDetailHtml(c, artifacts));
   });
 
   return router;
