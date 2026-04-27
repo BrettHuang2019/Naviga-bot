@@ -22,8 +22,14 @@ body {
 .container { max-width: 1500px; margin: 0 auto; padding: 1.5rem 2rem; }
 
 .page-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+.page-topbar { display: flex; justify-content: flex-start; margin-bottom: 1rem; }
 .page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .page-toolbar .page-title { margin-bottom: 0; }
+.toolbar-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.inline-config-form { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.4rem; background: white; border: 1px solid #dbe3ee; border-radius: 8px; }
+.inline-config-label { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+.inline-config-label input { width: 78px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.82rem; color: #0f172a; background: white; text-transform: none; letter-spacing: normal; }
+.inline-config-label input:focus { outline: 2px solid #93c5fd; outline-offset: 1px; border-color: #60a5fa; }
 .empty-state { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; color: #6b7280; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 
 /* Case list table */
@@ -122,7 +128,10 @@ body {
 
 .btn { padding: 0.45rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
 .btn:hover { filter: brightness(0.92); }
+.btn-primary { background: #0f766e; color: white; }
+.btn-secondary { display: inline-flex; align-items: center; gap: 0.35rem; background: #1d4ed8; color: white; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .btn-danger  { background: #dc2626; color: white; }
+.btn-ghost { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
 
 /* Status badge in list */
 .status-badge { font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 9999px; }
@@ -132,9 +141,33 @@ body {
 .status-badge.succeeded { background: #dcfce7; color: #15803d; }
 .status-badge.failed { background: #fee2e2; color: #dc2626; }
 
+.settings-panel { background: white; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.06); overflow: hidden; }
+.settings-body { padding: 0.75rem; display: grid; gap: 0.75rem; }
+.settings-actions { justify-content: space-between; }
+.settings-list-wrap { border: 1px solid #dbe3ee; border-radius: 8px; overflow: hidden; }
+.settings-list-head,
+.settings-row { display: grid; grid-template-columns: 1.1fr 1.2fr 0.8fr 110px; gap: 0.75rem; align-items: center; }
+.settings-list-head { background: #eff6ff; color: #1e3a8a; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.6rem 0.75rem; }
+.settings-list { display: grid; }
+.settings-row { padding: 0.65rem 0.75rem; border-top: 1px solid #e5e7eb; background: #fff; }
+.settings-row:nth-child(even) { background: #f8fafc; }
+.settings-cell { min-width: 0; }
+.settings-cell.action { display: flex; justify-content: flex-end; }
+.settings-cell input { width: 100%; border: 1px solid #cbd5e1; border-radius: 7px; padding: 0.45rem 0.6rem; font: inherit; font-size: 0.85rem; color: #0f172a; background: white; }
+.settings-cell input:focus { outline: 2px solid #93c5fd; outline-offset: 1px; border-color: #60a5fa; }
+.notice { border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.8rem; }
+.notice.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.notice.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
 @media (max-width: 960px) {
   .case-columns { grid-template-columns: 1fr; }
   .case-source-columns { grid-template-columns: 1fr; }
   .case-header { flex-direction: column; }
   .validation-values { grid-template-columns: 1fr; }
+  .inline-config-form { width: 100%; justify-content: space-between; }
+  .settings-actions { justify-content: flex-start; }
+  .settings-list-head { display: none; }
+  .settings-row { grid-template-columns: 1fr; }
+  .settings-cell.action { justify-content: flex-start; }
 }

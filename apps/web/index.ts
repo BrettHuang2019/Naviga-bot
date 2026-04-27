@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { parse, stringify } from "yaml";
 import { loadEnv } from "../../src/config/env.js";
 import { extractCoupon, type CheckExtraction, type CouponExtraction, type IncomeExtraction, type OcrPayload } from "../../src/comparison/index.js";
 import { amountsEqual, fuzzyAddressMatch, fuzzyNameMatch, normalizeForCompare, toAmount, toDigits } from "../../src/comparison/normalization.js";
@@ -103,6 +104,28 @@ type CaseArtifacts = {
   pipeline: CasePipelineStatus | null;
 };
 
+type SubscriptionTermTimeRules = {
+  version: number;
+  description?: string;
+  termTimeBySubscriptionProductCode: Record<string, Record<string, number | string>>;
+};
+
+type SubscriptionTermTimeRow = {
+  productCode: string;
+  durationKey: string;
+  termTime: string;
+};
+
+type HomeConfig = {
+  navigaBatchId: string;
+};
+
+type HomeConfigFile = {
+  version: number;
+  description?: string;
+  navigaBatchId: number | string;
+};
+
 function getIncomeExtraction(c: StoredCase): IncomeExtraction {
   return c.incomeExtraction;
 }
@@ -122,6 +145,158 @@ async function readJsonOrNull<T>(filePath: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+function getHomeConfigPath(rootDir: string): string {
+  return path.join(rootDir, "workflow", "business-rules", "home-config.yml");
+}
+
+async function readHomeConfig(rootDir: string): Promise<HomeConfig> {
+  try {
+    const raw = await fs.readFile(getHomeConfigPath(rootDir), "utf8");
+    const parsed = parse(raw) as Partial<HomeConfigFile> | null;
+    const configuredValue = parsed?.navigaBatchId;
+    return {
+      navigaBatchId: configuredValue === undefined || configuredValue === null ? "" : String(configuredValue),
+    };
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  const env = await loadEnv(rootDir);
+  return {
+    navigaBatchId: env.NAVIGA_BATCH_ID ?? "",
+  };
+}
+
+async function writeHomeConfig(rootDir: string, homeConfig: HomeConfig): Promise<void> {
+  const yaml = stringify({
+    version: 1,
+    description: "Home page editable project config.",
+    navigaBatchId: Number(homeConfig.navigaBatchId),
+  } satisfies HomeConfigFile, {
+    lineWidth: 0,
+  });
+  await fs.writeFile(getHomeConfigPath(rootDir), yaml, "utf8");
+}
+
+function getSubscriptionTermTimeRulesPath(rootDir: string): string {
+  return path.join(rootDir, "workflow", "business-rules", "subscription-term-time.yml");
+}
+
+async function readSubscriptionTermTimeRules(rootDir: string): Promise<SubscriptionTermTimeRules> {
+  const filePath = getSubscriptionTermTimeRulesPath(rootDir);
+  const raw = await fs.readFile(filePath, "utf8");
+  const parsed = parse(raw);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Subscription term/time rules file is invalid.");
+  }
+
+  const rules = parsed as Partial<SubscriptionTermTimeRules>;
+  return {
+    version: typeof rules.version === "number" ? rules.version : 1,
+    description: typeof rules.description === "string" ? rules.description : undefined,
+    termTimeBySubscriptionProductCode:
+      rules.termTimeBySubscriptionProductCode && typeof rules.termTimeBySubscriptionProductCode === "object"
+        ? rules.termTimeBySubscriptionProductCode
+        : {},
+  };
+}
+
+function getSubscriptionTermTimeRows(rules: SubscriptionTermTimeRules): SubscriptionTermTimeRow[] {
+  return Object.entries(rules.termTimeBySubscriptionProductCode)
+    .flatMap(([productCode, durationMap]) =>
+      Object.entries(durationMap).map(([durationKey, termTime]) => ({
+        productCode,
+        durationKey,
+        termTime: String(termTime),
+      }))
+    )
+    .sort((left, right) =>
+      left.productCode.localeCompare(right.productCode) ||
+      left.durationKey.localeCompare(right.durationKey)
+    );
+}
+
+function normalizeSubscriptionTermTimeValue(value: string): number | string {
+  return /^\d+$/.test(value) ? Number(value) : value;
+}
+
+function buildSubscriptionTermTimeRulesFromRows(
+  rows: SubscriptionTermTimeRow[],
+  previousRules: SubscriptionTermTimeRules,
+): SubscriptionTermTimeRules {
+  const termTimeBySubscriptionProductCode: Record<string, Record<string, number | string>> = {};
+
+  for (const row of rows) {
+    const productCode = row.productCode.trim().toUpperCase();
+    const durationKey = row.durationKey.trim();
+    const termTime = row.termTime.trim();
+
+    if (!productCode || !durationKey || !termTime) {
+      throw new Error("Each row must include product code, duration key, and term/time.");
+    }
+
+    if (!termTimeBySubscriptionProductCode[productCode]) {
+      termTimeBySubscriptionProductCode[productCode] = {};
+    }
+
+    termTimeBySubscriptionProductCode[productCode][durationKey] = normalizeSubscriptionTermTimeValue(termTime);
+  }
+
+  return {
+    version: previousRules.version,
+    description: previousRules.description,
+    termTimeBySubscriptionProductCode,
+  };
+}
+
+async function writeSubscriptionTermTimeRules(rootDir: string, rules: SubscriptionTermTimeRules): Promise<void> {
+  const filePath = getSubscriptionTermTimeRulesPath(rootDir);
+  const yaml = stringify(rules, {
+    defaultStringType: "QUOTE_DOUBLE",
+    lineWidth: 0,
+    sortMapEntries: true,
+  });
+  await fs.writeFile(filePath, yaml, "utf8");
+}
+
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item));
+  }
+
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  return [String(value)];
+}
+
+function parseSubscriptionTermTimeRows(body: Request["body"]): SubscriptionTermTimeRow[] {
+  const productCodes = toStringArray(body.productCode);
+  const durationKeys = toStringArray(body.durationKey);
+  const termTimes = toStringArray(body.termTime);
+  const rowCount = Math.max(productCodes.length, durationKeys.length, termTimes.length);
+  const rows: SubscriptionTermTimeRow[] = [];
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const row = {
+      productCode: (productCodes[index] ?? "").trim(),
+      durationKey: (durationKeys[index] ?? "").trim(),
+      termTime: (termTimes[index] ?? "").trim(),
+    };
+
+    if (!row.productCode && !row.durationKey && !row.termTime) {
+      continue;
+    }
+
+    rows.push(row);
+  }
+
+  return rows;
 }
 
 async function readFirstJsonOrNull<T>(dirPath: string, fileNames: string[]): Promise<T | null> {
@@ -375,7 +550,13 @@ function casePipelineOutcome(pipeline: CasePipelineStatus | null): WorkflowRunSt
   return pipeline?.batchWorkflow?.status ?? pipeline?.ocrExtraction?.status ?? "pending";
 }
 
-function caseListHtml(rows: { c: StoredCase; pipeline: CasePipelineStatus | null }[]): string {
+function caseListHtml(args: {
+  rows: { c: StoredCase; pipeline: CasePipelineStatus | null }[];
+  homeConfig: HomeConfig;
+  message?: string;
+  error?: string;
+}): string {
+  const rows = args.rows;
   const tableRows = rows.map(({ c, pipeline }) => {
     const status = casePipelineOutcome(pipeline);
     const score = c.verification?.bestCandidate?.score ?? "—";
@@ -394,14 +575,31 @@ function caseListHtml(rows: { c: StoredCase; pipeline: CasePipelineStatus | null
   const emptyState = rows.length === 0
     ? `<div class="empty-state">No case history found.</div>`
     : "";
+  const flash = args.error
+    ? `<div class="notice error">${esc(args.error)}</div>`
+    : args.message
+      ? `<div class="notice success">${esc(args.message)}</div>`
+      : "";
+  const batchEditor = `<form method="post" action="/settings/home-config" class="inline-config-form" onsubmit="return confirm('Update current batch number?');">
+    <label class="inline-config-label">
+      <span>Batch</span>
+      <input name="navigaBatchId" value="${esc(args.homeConfig.navigaBatchId)}" placeholder="4621" inputmode="numeric" required />
+    </label>
+    <button type="submit" class="btn btn-primary">Edit</button>
+  </form>`;
 
   const body = `
     <div class="page-toolbar">
       <h2 class="page-title">Cases</h2>
-      <form method="post" action="/cases/clear" onsubmit="return confirm('Delete all case history? This cannot be undone.');">
-        <button type="submit" class="btn btn-danger">Clear history</button>
-      </form>
+      <div class="toolbar-actions">
+        ${batchEditor}
+        <a href="/settings/subscription-term-time" class="btn btn-secondary">Term/time settings</a>
+        <form method="post" action="/cases/clear" onsubmit="return confirm('Delete all case history? This cannot be undone.');">
+          <button type="submit" class="btn btn-danger">Clear history</button>
+        </form>
+      </div>
     </div>
+    ${flash}
     ${emptyState}
     ${rows.length > 0 ? `<table class="cases-table">
       <thead>
@@ -415,22 +613,136 @@ function caseListHtml(rows: { c: StoredCase; pipeline: CasePipelineStatus | null
   return layout("Cases", "", body);
 }
 
+function subscriptionTermTimeSettingsHtml(args: {
+  rows: SubscriptionTermTimeRow[];
+  message?: string;
+  error?: string;
+}): string {
+  const rows = args.rows.length > 0 ? args.rows : [{ productCode: "", durationKey: "", termTime: "" }];
+  const flash = args.error
+    ? `<div class="notice error">${esc(args.error)}</div>`
+    : args.message
+      ? `<div class="notice success">${esc(args.message)}</div>`
+      : "";
+  const rowsHtml = rows.map((row) => subscriptionTermTimeRowHtml(row)).join("");
+  const body = `
+    <div class="page-topbar">
+      <a href="/" class="btn btn-secondary">← All cases</a>
+    </div>
+    <section class="settings-panel">
+      <div class="section-heading">
+        <h2>Subscription term/time settings</h2>
+        <span>Edit YAML-backed mappings used for 1 year, 2 year, and other duration rules.</span>
+      </div>
+      <div class="settings-body">
+        ${flash}
+        <form method="post" action="/settings/subscription-term-time" id="term-time-form">
+          <div class="toolbar-actions settings-actions">
+            <button type="button" class="btn btn-secondary" id="add-term-time-row">Add entry</button>
+            <button type="submit" class="btn btn-primary">Save settings</button>
+          </div>
+          <div class="settings-list-wrap">
+            <div class="settings-list-head">
+              <span>Product code</span>
+              <span>Duration key</span>
+              <span>Term/time</span>
+              <span>Action</span>
+            </div>
+            <div id="term-time-rows" class="settings-list">${rowsHtml}</div>
+          </div>
+        </form>
+      </div>
+    </section>
+    <template id="term-time-row-template">${subscriptionTermTimeRowHtml({ productCode: "", durationKey: "", termTime: "" })}</template>
+    <script>
+      const rowsContainer = document.getElementById("term-time-rows");
+      const rowTemplate = document.getElementById("term-time-row-template");
+      const addButton = document.getElementById("add-term-time-row");
+
+      function bindRemove(button) {
+        button.addEventListener("click", () => {
+          const row = button.closest(".settings-row");
+          if (!row) return;
+          row.remove();
+
+          if (rowsContainer.children.length === 0 && rowTemplate instanceof HTMLTemplateElement) {
+            rowsContainer.appendChild(rowTemplate.content.firstElementChild.cloneNode(true));
+            bindAllRemoveButtons();
+          }
+        });
+      }
+
+      function bindAllRemoveButtons() {
+        rowsContainer.querySelectorAll("[data-remove-row]").forEach((button) => {
+          if (!(button instanceof HTMLButtonElement) || button.dataset.bound === "true") return;
+          button.dataset.bound = "true";
+          bindRemove(button);
+        });
+      }
+
+      addButton?.addEventListener("click", () => {
+        if (!(rowTemplate instanceof HTMLTemplateElement) || !rowsContainer) return;
+        rowsContainer.appendChild(rowTemplate.content.firstElementChild.cloneNode(true));
+        bindAllRemoveButtons();
+      });
+
+      bindAllRemoveButtons();
+    </script>`;
+
+  return layout("Term/time settings", "", body);
+}
+
+function subscriptionTermTimeRowHtml(row: SubscriptionTermTimeRow): string {
+  return `<div class="settings-row">
+    <label class="settings-cell">
+      <span class="sr-only">Product code</span>
+      <input name="productCode" value="${esc(row.productCode)}" placeholder="PGC" autocomplete="off" required />
+    </label>
+    <label class="settings-cell">
+      <span class="sr-only">Duration key</span>
+      <input name="durationKey" value="${esc(row.durationKey)}" placeholder="1_year" autocomplete="off" required />
+    </label>
+    <label class="settings-cell">
+      <span class="sr-only">Term/time</span>
+      <input name="termTime" value="${esc(row.termTime)}" placeholder="12" autocomplete="off" required />
+    </label>
+    <div class="settings-cell action">
+      <button type="button" class="btn btn-ghost" data-remove-row>Remove</button>
+    </div>
+  </div>`;
+}
+
 function pipelineStageBadge(status: string | null | undefined): string {
   const label = status ?? "pending";
   const icon = label === "succeeded" ? "✓" : label === "failed" ? "×" : label === "running" || label === "queued" ? "…" : "!";
   return `<span class="status-badge ${esc(label)}"><span class="status-icon">${icon}</span>${esc(label)}</span>`;
 }
 
+function formatWorkflowErrorMessage(error: WorkflowRunState["error"] | undefined): string {
+  if (!error) return "";
+
+  const rawMessage = typeof error.message === "string" && error.message.trim().length > 0
+    ? error.message
+    : error.stack ?? "";
+  const firstLine = rawMessage.split(/\r?\n/, 1)[0]?.trim() ?? "";
+
+  return firstLine.replace(/^Error:\s*/u, "");
+}
+
 function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
   const ocrStatus = pipeline?.ocrExtraction?.status ?? "pending";
   const batchStatus = pipeline?.batchWorkflow?.status;
   const batchError = pipeline?.batchWorkflow?.error;
+  const batchErrorMessage = formatWorkflowErrorMessage(batchError);
 
-  const errorHtml = batchError
-    ? `<details class="raw-text-wrap" open>
-        <summary>Batch workflow error</summary>
-        <pre class="raw-text-content">${esc(batchError.stack ?? batchError.message)}</pre>
-      </details>`
+  const errorHtml = batchErrorMessage
+    ? `<div class="validation-row error">
+        <div class="validation-main">
+          <div class="validation-title">Batch workflow error</div>
+          <div class="validation-message">${esc(batchErrorMessage)}</div>
+        </div>
+        ${pipelineStageBadge("failed")}
+      </div>`
     : "";
 
   return `<section class="validate-section">
@@ -453,8 +765,8 @@ function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
         </div>
         ${pipelineStageBadge(batchStatus)}
       </div>
+      ${errorHtml}
     </div>
-    ${errorHtml}
   </section>`;
 }
 
@@ -544,9 +856,9 @@ function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts): Validatio
 function validationSectionHtml(rows: ValidationRow[]): string {
   const rowsHtml = rows.map((row) => {
     const values = [
-      validationValue("Naviga", row.naviga),
-      validationValue("Coupon", row.coupon),
       validationValue("Check", row.check),
+      validationValue("Coupon", row.coupon),
+      validationValue("Naviga", row.naviga),
     ].join("");
 
     return `<div class="validation-row ${row.status}">
@@ -698,9 +1010,11 @@ function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
     (pipelineOutcome === "succeeded" ? "Success" : pipelineOutcome === "failed" ? "Failed" : "Pending");
 
   const body = `
+    <div class="page-topbar">
+      <a href="/" class="btn btn-secondary">← All cases</a>
+    </div>
     <div class="case-header">
       <div>
-        <div class="case-id">${esc(c.id)}</div>
         <div class="case-created">${esc(new Date(c.createdAt).toLocaleString())}</div>
       </div>
       <div class="recommendation-box ${esc(pipelineOutcome)}">${esc(recommendation)}</div>
@@ -713,8 +1027,7 @@ function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
     </div>
     ${validationSectionHtml(validationRows)}`;
 
-  const breadcrumb = `<a href="/">← All cases</a>`;
-  return layout(c.id, breadcrumb, body);
+  return layout(c.id, "", body);
 }
 
 // ---------------------------------------------------------------------------
@@ -731,7 +1044,7 @@ function createReviewRouter(rootDir: string): Router {
   });
 
   // GET / — case list
-  router.get("/", async (_req: Request, res: Response) => {
+  router.get("/", async (req: Request, res: Response) => {
     let entries: string[];
     try {
       entries = await fs.readdir(casesDir);
@@ -753,7 +1066,86 @@ function createReviewRouter(rootDir: string): Router {
       .filter((r): r is { c: StoredCase; pipeline: CasePipelineStatus | null } => r !== null)
       .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt));
 
-    res.send(caseListHtml(rows));
+    const homeConfig = await readHomeConfig(rootDir);
+    const message = typeof req.query["message"] === "string" ? req.query["message"] : undefined;
+    const error = typeof req.query["error"] === "string" ? req.query["error"] : undefined;
+    res.send(caseListHtml({ rows, homeConfig, message, error }));
+  });
+
+  router.post("/settings/home-config", async (req: Request, res: Response) => {
+    const navigaBatchId = typeof req.body.navigaBatchId === "string" ? req.body.navigaBatchId.trim() : "";
+    if (!/^\d+$/.test(navigaBatchId)) {
+      let entries: string[] = [];
+      try {
+        entries = await fs.readdir(casesDir);
+      } catch {
+        entries = [];
+      }
+
+      const rows = (
+        await Promise.all(
+          entries.map(async (id) => {
+            const caseFile = path.join(casesDir, id, "case.json");
+            const c = await readJsonOrNull<StoredCase>(caseFile);
+            if (!c) return null;
+            const artifacts = await readCaseArtifacts(casesDir, id);
+            return { c, pipeline: artifacts.pipeline };
+          })
+        )
+      )
+        .filter((r): r is { c: StoredCase; pipeline: CasePipelineStatus | null } => r !== null)
+        .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt));
+
+      res.status(400).send(caseListHtml({
+        rows,
+        homeConfig: { navigaBatchId },
+        error: "Batch number must be digits only.",
+      }));
+      return;
+    }
+
+    await writeHomeConfig(rootDir, { navigaBatchId });
+    res.redirect(303, "/?message=Batch%20number%20saved");
+  });
+
+  router.get("/settings/subscription-term-time", async (req: Request, res: Response) => {
+    try {
+      const rules = await readSubscriptionTermTimeRules(rootDir);
+      const rows = getSubscriptionTermTimeRows(rules);
+      const message = typeof req.query["message"] === "string" ? req.query["message"] : undefined;
+      const error = typeof req.query["error"] === "string" ? req.query["error"] : undefined;
+      res.send(subscriptionTermTimeSettingsHtml({ rows, message, error }));
+    } catch (error: unknown) {
+      res.status(500).send(
+        subscriptionTermTimeSettingsHtml({
+          rows: [],
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  });
+
+  router.post("/settings/subscription-term-time", async (req: Request, res: Response) => {
+    try {
+      const previousRules = await readSubscriptionTermTimeRules(rootDir);
+      const rows = parseSubscriptionTermTimeRows(req.body);
+      const nextRules = buildSubscriptionTermTimeRulesFromRows(rows, previousRules);
+      await writeSubscriptionTermTimeRules(rootDir, nextRules);
+      res.redirect(303, "/settings/subscription-term-time?message=Settings%20saved");
+    } catch (error: unknown) {
+      const rules = await readSubscriptionTermTimeRules(rootDir).catch(() => ({
+        version: 1,
+        description: undefined,
+        termTimeBySubscriptionProductCode: {},
+      }));
+      const submittedRows = parseSubscriptionTermTimeRows(req.body);
+      res.status(400).send(
+        subscriptionTermTimeSettingsHtml({
+          rows: submittedRows.length > 0 ? submittedRows : getSubscriptionTermTimeRows(rules),
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
   });
 
   router.post("/cases/clear", async (_req: Request, res: Response) => {

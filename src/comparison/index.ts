@@ -16,6 +16,7 @@ import type {
   ComparisonCheck,
   CouponExtraction,
   CouponOption,
+  CouponTermGrid,
   ExtractionConfidence,
   ExtractionMeta,
   FieldIssue,
@@ -62,6 +63,11 @@ type ParsedCouponOption = CouponOption & {
   selectionScore: number;
 };
 
+type CouponOfferCandidate = {
+  text: string;
+  line: OcrLine;
+};
+
 const ACCEPTED_PAYEES = [
   "Bayard Presse Canada Inc.",
   "Bayard Presse Canada",
@@ -73,7 +79,7 @@ const ACCEPTED_PAYEES = [
 ] as const;
 
 const COUPON_ANCHOR_PATTERN =
-  /(Retournez ce coupon|Je profite de cette offre|Je souhaite prolonger|Nombre de copies|Pour l'abonnement de)/i;
+  /(Retournez ce coupon|Je profite de cette offre|Je souhaite prolonger|Nombre de copies|Number of copies|Pour l'abonnement de|I wish to add)/i;
 
 const PAYEE_ANCHOR_PATTERN =
   /\b(?:PAYEZ(?:\s*[ÀA])?|PAY TO(?: THE(?: ORDER OF)?)?|L'ORDRE DE|A L'ORDRE DE|À L'ORDRE DE)\b/i;
@@ -81,6 +87,8 @@ const PAYEE_ANCHOR_PATTERN =
 const BANK_LINE_PATTERN = /\b(BANQUE|BANK|DESJARDINS|CAISSE|CREDIT UNION|RBC|BMO|TD|SCOTIA|NATIONALE)\b/i;
 
 const PHONE_LINE_PATTERN = /\b(T[ÉE]L|TEL|FAX|T[ÉE]L[ÉE]COPIEUR)\b/i;
+const PAYEE_REJECTION_PATTERN =
+  /\b(?:SACRED\s+JOURNEY|PRIONS?\s+EN\s+[ÉE]GLISE|ABONNEMENT|RENOUVEL|EXTRA|R[ÉE]GULIER|REGULIER|WITH\s+PLUS|TAX(?:ES)?\s+INCL|YEAR(?:S)?|ANS?|NUM[ÉE]ROS?|NOS?|COP(?:Y|IES)|COUPON|PROLONGER)\b/i;
 
 function firstMatch(text: string, pattern: RegExp): string | null {
   const match = text.match(pattern);
@@ -156,6 +164,14 @@ function horizontalGap(left: OcrLine, right: OcrLine): number {
   return 0;
 }
 
+function compareDateFragmentOrder(left: OcrLine, right: OcrLine): number {
+  if (Math.abs(left.top - right.top) <= 0.01) {
+    return left.left - right.left || left.top - right.top;
+  }
+
+  return left.top - right.top || left.left - right.left;
+}
+
 function hasMostlyLetters(text: string): boolean {
   const letters = (text.match(/[A-Za-zÀ-ÿ]/g) ?? []).length;
   const digits = (text.match(/\d/g) ?? []).length;
@@ -206,8 +222,20 @@ function normalizeAcceptedPayee(value: string | null): string | null {
     return null;
   }
 
+  if (/\bBALIO\s+THE\b/i.test(value)) {
+    return null;
+  }
+
   if (/\bPublications?\s+BLD\b/i.test(value)) {
     return "Publications BLD";
+  }
+
+  if (/\bnova(?:le|lis|l[i1]s)\b/i.test(value)) {
+    return "Novalis";
+  }
+
+  if (/\bliving\s+with\s+christ\b/i.test(value) && !/\bwith\s+sacred\s+journey\b/i.test(value)) {
+    return "Living with Christ";
   }
 
   const normalizedValue = normalizeForCompare(value);
@@ -239,7 +267,7 @@ function isLikelyCheckNameLine(line: OcrLine): boolean {
 }
 
 function cleanupPayeeCandidate(text: string): string {
-  return normalizeWhitespace(
+  const cleaned = normalizeWhitespace(
     text
       .replace(/^(?:PAYEZ(?:\s*[ÀA])?|PAY TO(?: THE(?: ORDER OF)?)?|L'ORDRE DE|A L'ORDRE DE|À L'ORDRE DE)\s*[:.-]?\s*/i, "")
       .replace(/^[^\p{L}\d]+/u, "")
@@ -248,9 +276,20 @@ function cleanupPayeeCandidate(text: string): string {
       .replace(/\s+\d{1,3}\s*\/\s*100(?:\s+DOLLARS?)?\s*$/iu, "")
       .replace(/\s+DOLLARS?\s*$/iu, ""),
   );
+
+  if (/^(?:BALIO|PAY)\s+THE$/i.test(cleaned)) {
+    return "";
+  }
+
+  return cleaned;
 }
 
 function isPayeeCandidateText(text: string): boolean {
+  const normalized = normalizeAcceptedPayee(text);
+  if (normalized === null) {
+    return false;
+  }
+
   return (
     hasMostlyLetters(text) &&
     !isLikelyAddressLine(text) &&
@@ -261,27 +300,34 @@ function isPayeeCandidateText(text: string): boolean {
     !/^\s*[-.,]/.test(text) &&
     !/^[-$.,\s]+$/.test(text) &&
     !/^(?:[AMJYD]\s*){1,6}$/i.test(text) &&
-    !/^(?:DATE|MEMO)$/i.test(text)
+    !/^(?:DATE|MEMO)$/i.test(text) &&
+    !PAYEE_REJECTION_PATTERN.test(text)
   );
 }
 
-function extractMoneyCandidate(text: string): string | null {
-  const match = text.match(/\$?\s*-?\s*(\d{1,3})\s*[.,]\s*(\d{2})\s*-?\s*\$?/);
+function extractMoneyCandidate(text: string): { value: string; damaged: boolean } | null {
+  const match = text.match(/\$?\s*-?\s*(\d{1,3})\s*[.,]\s*(\d{2})(?!\d)\s*-?\s*\$?/);
   if (match) {
-    return `${match[1]}.${match[2]}`;
+    return { value: `${match[1]}.${match[2]}`, damaged: false };
   }
 
   const implicitCents = text.match(/\$\s*(\d{3,5})\b/);
   if (implicitCents) {
     const digits = implicitCents[1];
-    return `${digits.slice(0, -2)}.${digits.slice(-2)}`;
+    return { value: `${digits.slice(0, -2)}.${digits.slice(-2)}`, damaged: false };
+  }
+
+  const damaged = text.match(/\$?\s*-?\s*(\d{1,3})\s*[.,]\s*(\d{2})\d+\s*-?\s*\$?/);
+  if (damaged) {
+    return { value: `${damaged[1]}.${damaged[2]}`, damaged: true };
   }
 
   return null;
 }
 
 function normalizeCheckDateText(text: string): string | null {
-  const yearFirst = text.match(/(\d[\d ]{3,})\s*-\s*(\d[\d ]{0,1}\d?)\s*-\s*(\d[\d ]{0,1}\d?)/);
+  const normalizedText = normalizeOcrDigits(normalizeWhitespace(text).replace(/\s*-\s*/g, "-").replace(/\s*\/\s*/g, "/"));
+  const yearFirst = normalizedText.match(/(\d[\d ]{3,})\s*-\s*(\d[\d ]{0,1}\d?)\s*-\s*(\d[\d ]{0,1}\d?)/);
   if (yearFirst) {
     const year = yearFirst[1].replace(/\s+/g, "");
     const month = yearFirst[2].replace(/\s+/g, "");
@@ -291,7 +337,35 @@ function normalizeCheckDateText(text: string): string | null {
     }
   }
 
-  return parseCheckDateCandidate(text);
+  const yearFirstMissingDayHyphen = normalizedText.match(/(\d[\d ]{3,})\s*-\s*(\d[\d ]{1,2})\s+(\d[\d ]{0,1}\d?)/);
+  if (yearFirstMissingDayHyphen) {
+    const year = yearFirstMissingDayHyphen[1].replace(/\s+/g, "");
+    const month = yearFirstMissingDayHyphen[2].replace(/\s+/g, "");
+    const day = yearFirstMissingDayHyphen[3].replace(/\s+/g, "");
+    if (/^\d{4}$/.test(year) && /^\d{1,2}$/.test(month) && /^\d{1,2}$/.test(day)) {
+      return parseLocalDate(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+    }
+  }
+
+  return parseCheckDateCandidate(normalizedText);
+}
+
+function isLikelyDateFragmentText(text: string): boolean {
+  const normalized = normalizeWhitespace(text).replace(/^DATE\b/i, "").trim();
+  if (!normalized) {
+    return false;
+  }
+
+  if (/^(?:[AMDJY]\s*)+$/i.test(normalized)) {
+    return true;
+  }
+
+  const compactDigits = normalizeOcrDigits(normalized).replace(/[\s/-]/g, "");
+  if (/^\d+$/.test(normalized) && compactDigits.length >= 3 && compactDigits.length <= 6) {
+    return false;
+  }
+
+  return /^[\dOIl|\s/-]+$/.test(normalized) && compactDigits.length > 0 && compactDigits.length <= 8;
 }
 
 function extractCheckNumber(lines: OcrLine[], checkText: string): { value: string | null; meta?: ExtractionMeta } {
@@ -318,7 +392,7 @@ function extractCheckNumber(lines: OcrLine[], checkText: string): { value: strin
 
 function extractCheckDate(lines: OcrLine[], checkText: string): { value: string | null; meta?: ExtractionMeta } {
   const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
-  const topRightLines = lines.filter((line) => line.top <= 0.28 && (!useHorizontalGeometry || line.left >= 0.45));
+  const topRightLines = lines.filter((line) => line.top <= 0.3 && (!useHorizontalGeometry || line.left >= 0.45));
   const anchors = topRightLines.filter((line) => /\bDATE\b/i.test(line.text)).sort((left, right) => left.top - right.top || right.left - left.left);
 
   for (const anchor of anchors) {
@@ -331,11 +405,14 @@ function extractCheckDate(lines: OcrLine[], checkText: string): { value: string 
       .filter(
         (line) =>
           line !== anchor &&
-          line.left >= anchor.left - 0.08 &&
-          verticalDistance(anchor, line) <= 0.03 &&
-          (/[\d-]/.test(line.text) || /^\d[\d\s-]+$/.test(line.text)),
+          line.top >= anchor.top - 0.03 &&
+          line.top <= anchor.bottom + 0.035 &&
+          line.right >= anchor.left - 0.12 &&
+          line.left <= anchor.right + 0.13 &&
+          verticalDistance(anchor, line) <= 0.07 &&
+          isLikelyDateFragmentText(line.text),
       )
-      .sort((left, right) => verticalDistance(anchor, left) - verticalDistance(anchor, right) || left.left - right.left);
+      .sort(compareDateFragmentOrder);
 
     const mergedNearby = normalizeCheckDateText([anchor.text, ...nearby.map((line) => line.text)].join(" "));
     if (mergedNearby) {
@@ -357,7 +434,25 @@ function extractCheckDate(lines: OcrLine[], checkText: string): { value: string 
   }
 
   const standalone = topRightLines
-    .map((line) => ({ line, value: normalizeCheckDateText(line.text) }))
+    .map((line) => {
+      const nearby = topRightLines
+        .filter(
+          (candidate) =>
+            candidate !== line &&
+            candidate.top >= line.top - 0.01 &&
+            candidate.top <= line.bottom + 0.035 &&
+            candidate.right >= line.left - 0.05 &&
+            candidate.left <= line.right + 0.12 &&
+            verticalDistance(line, candidate) <= 0.04 &&
+            isLikelyDateFragmentText(candidate.text),
+        )
+        .sort(compareDateFragmentOrder);
+
+      return {
+        line,
+        value: normalizeCheckDateText([line.text, ...nearby.map((candidate) => candidate.text)].join(" ")),
+      };
+    })
     .find((candidate) => candidate.value !== null);
   if (standalone?.value) {
     return {
@@ -384,8 +479,9 @@ function extractPayTo(lines: OcrLine[]): { value: string | null; meta?: Extracti
 
   const anchor = lines[anchorIndex];
   const inline = cleanupPayeeCandidate(anchor.text);
-  if (inline && isPayeeCandidateText(inline)) {
-    return { value: normalizeAcceptedPayee(inline), meta: buildMeta("high", "direct") };
+  const normalizedInline = normalizeAcceptedPayee(inline);
+  if (inline && normalizedInline && isPayeeCandidateText(inline)) {
+    return { value: normalizedInline, meta: buildMeta("high", "direct") };
   }
 
   const candidates = lines
@@ -408,10 +504,12 @@ function extractPayTo(lines: OcrLine[]): { value: string | null; meta?: Extracti
     })
     .map(({ line, index }) => ({
       cleaned: cleanupPayeeCandidate(line.text),
+      normalized: normalizeAcceptedPayee(cleanupPayeeCandidate(line.text)),
       score:
         (line.left > anchor.right ? 0 : 2) +
         (line.top < anchor.top ? 0 : 3) +
         Math.abs(index - anchorIndex) +
+        (normalizeAcceptedPayee(cleanupPayeeCandidate(line.text)) ? 0 : 6) +
         verticalDistance(anchor, line) * 100 +
         horizontalGap(anchor, line) * 100,
     }))
@@ -422,7 +520,7 @@ function extractPayTo(lines: OcrLine[]): { value: string | null; meta?: Extracti
   }
 
   return {
-    value: normalizeAcceptedPayee(candidates[0].cleaned),
+    value: candidates[0].normalized ?? candidates[0].cleaned,
     meta: buildMeta(candidates.length === 1 ? "high" : "medium", "direct"),
   };
 }
@@ -454,20 +552,33 @@ function extractCheckAmountNumeric(lines: OcrLine[]): { value: number | null; me
       line,
       value: extractMoneyCandidate(line.text),
     }))
-    .filter((candidate): candidate is { line: OcrLine; value: string } => candidate.value !== null)
-    .sort((left, right) => (useHorizontalGeometry ? right.line.left - left.line.left : left.line.top - right.line.top) || left.line.top - right.line.top);
+    .filter((candidate): candidate is { line: OcrLine; value: { value: string; damaged: boolean } } => candidate.value !== null)
+    .sort(
+      (left, right) =>
+        Number(left.value.damaged) - Number(right.value.damaged) ||
+        (useHorizontalGeometry ? right.line.left - left.line.left : left.line.top - right.line.top) ||
+        left.line.top - right.line.top,
+    );
 
   if (candidates.length === 0) {
     return { value: null };
   }
 
-  const amount = Number(candidates[0].value);
+  const amount = Number(candidates[0].value.value);
   return {
     value: Number.isFinite(amount) ? amount : null,
     meta:
       candidates.length === 1
         ? buildMeta("high", "direct")
-        : buildMeta("medium", "direct", ["Multiple right-side amount candidates; chose the farthest-right value."]),
+        : buildMeta(
+            candidates[0].value.damaged ? "low" : "medium",
+            "direct",
+            [
+              candidates[0].value.damaged
+                ? "Multiple right-side amount candidates were damaged; chose the least-damaged value."
+                : "Multiple right-side amount candidates; preferred the cleanest farthest-right value.",
+            ],
+          ),
   };
 }
 
@@ -649,7 +760,7 @@ function splitIncomeDocumentLines(document: ParsedOcrDocument): { checkLines: Oc
       const offerStartTop =
         document.lines
           .slice(0, anchorIndex)
-          .filter((line) => line.top >= Math.max(0.45, anchor.top - 0.2) && parseCouponOption(line) !== null)
+          .filter((line) => line.top >= Math.max(0.45, anchor.top - 0.2) && hasCouponOptionLabel(line.text) && extractDecimalAmounts(line.text).length > 0)
           .map((line) => line.top)
           .sort((left, right) => left - right)[0] ?? anchor.top;
       const couponStartTop = Math.min(anchor.top, offerStartTop);
@@ -677,13 +788,59 @@ function splitIncomeDocumentLines(document: ParsedOcrDocument): { checkLines: Oc
   };
 }
 
-function parseMonthDayYearDigits(digits: string): string | null {
-  if (digits.length === 8) {
-    return parseLocalDate(`${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`);
+type CompactDateLayout = "year-first" | "month-first" | "day-first" | null;
+
+function detectCompactDateLayout(text: string): CompactDateLayout {
+  const normalized = normalizeWhitespace(text).toUpperCase().replace(/[^A-Z]/g, "");
+
+  if (
+    /(YYYYMMDD|AAAAMMJJ|AAAAMMDD)/.test(normalized) ||
+    /(?:Y{4}M{2}D{2}|A{4}M{2}J{2}|A{4}M{2}D{2})/.test(normalized)
+  ) {
+    return "year-first";
   }
 
-  if (digits.length === 7) {
-    return parseLocalDate(`${digits.slice(0, 2)}/${digits.slice(2, 4)}/2${digits.slice(4, 7)}`);
+  if (/(MMDDYYYY|MMJJAAAA)/.test(normalized) || /(?:M{2}D{2}Y{4}|M{2}J{2}A{4})/.test(normalized)) {
+    return "month-first";
+  }
+
+  if (/(DDMMYYYY|JJMMAAAA)/.test(normalized) || /(?:D{2}M{2}Y{4}|J{2}M{2}A{4})/.test(normalized)) {
+    return "day-first";
+  }
+
+  return null;
+}
+
+function parseMonthDayYearDigits(digits: string, layout: CompactDateLayout): string | null {
+  if (digits.length === 8 && /^20\d{6}$/.test(digits)) {
+    return parseLocalDate(`${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`);
+  }
+
+  if (digits.length !== 8) {
+    return null;
+  }
+
+  const monthFirst = parseLocalDate(`${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`);
+  const dayFirst = parseLocalDate(`${digits.slice(2, 4)}/${digits.slice(0, 2)}/${digits.slice(4, 8)}`);
+
+  if (layout === "month-first") {
+    return monthFirst;
+  }
+
+  if (layout === "day-first") {
+    return dayFirst;
+  }
+
+  if (layout === "year-first") {
+    return null;
+  }
+
+  if (monthFirst && !dayFirst) {
+    return monthFirst;
+  }
+
+  if (dayFirst && !monthFirst) {
+    return dayFirst;
   }
 
   return null;
@@ -696,7 +853,7 @@ function parseCheckDateCandidate(text: string): string | null {
     return direct;
   }
 
-  return parseMonthDayYearDigits(text.replace(/\D/g, ""));
+  return parseMonthDayYearDigits(normalizeOcrDigits(text).replace(/\D/g, ""), detectCompactDateLayout(text));
 }
 
 function extractDecimalAmounts(text: string): number[] {
@@ -922,7 +1079,7 @@ function extractCouponPromoCode(lines: OcrLine[]): { value: string | null; meta?
 
 function leadingOptionMark(text: string): { mark: string | null; marked: boolean; unselected: boolean; score: number } {
   const trimmed = text.trimStart();
-  const mark = trimmed.match(/^[XxLM1₡€¢•*0]/u)?.[0] ?? null;
+  const mark = trimmed.match(/^[XxLM1₡€¢•*0£₪Z]/u)?.[0] ?? null;
   if (!mark) {
     return { mark: null, marked: false, unselected: false, score: 0 };
   }
@@ -938,9 +1095,86 @@ function leadingOptionMark(text: string): { mark: string | null; marked: boolean
   return { mark, marked: true, unselected: false, score: /[XxLM1]/.test(mark) ? 3 : 2 };
 }
 
+function detectCouponOptionYears(text: string): number | null {
+  if (/\b2\s*(?:ans?|years?)\b/i.test(text)) {
+    return 2;
+  }
+
+  if (/(?:\b1\s*(?:an|ans|year|years)\b|\b1an\b|\blan\b|\balan\b)/i.test(text)) {
+    return 1;
+  }
+
+  return null;
+}
+
+function hasCouponOptionLabel(text: string): boolean {
+  return (
+    detectCouponOptionYears(text) !== null ||
+    /\b6\s*mois\b/i.test(text) ||
+    /\b(?:11|12|22|24)\s*(?:nos|num[eé]ros)\b/i.test(text)
+  );
+}
+
+function isAmountOnlyCouponLine(text: string): boolean {
+  return extractDecimalAmounts(text).length > 0 && !hasCouponOptionLabel(text);
+}
+
+function isLabelOnlyCouponLine(text: string): boolean {
+  return extractDecimalAmounts(text).length === 0 && detectCouponOptionYears(text) !== null;
+}
+
+function canMergeCouponOfferLines(left: OcrLine, right: OcrLine): boolean {
+  return rowsOverlap(left, right, 0.018) || (verticalDistance(left, right) <= 0.025 && horizontalGap(left, right) <= 0.18);
+}
+
+function addCouponOfferCandidate(
+  candidates: CouponOfferCandidate[],
+  seen: Set<string>,
+  line: OcrLine,
+  text: string,
+): void {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) {
+    return;
+  }
+
+  const key = `${line.top.toFixed(3)}:${line.left.toFixed(3)}:${normalized}`;
+  if (seen.has(key)) {
+    return;
+  }
+
+  seen.add(key);
+  candidates.push({ text: normalized, line });
+}
+
+function buildCouponOfferCandidates(lines: OcrLine[]): CouponOfferCandidate[] {
+  const candidates: CouponOfferCandidate[] = [];
+  const seen = new Set<string>();
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    addCouponOfferCandidate(candidates, seen, line, line.text);
+    for (const neighbor of lines) {
+      if (neighbor === line || !canMergeCouponOfferLines(line, neighbor)) {
+        continue;
+      }
+
+      if (isAmountOnlyCouponLine(line.text) && isLabelOnlyCouponLine(neighbor.text)) {
+        addCouponOfferCandidate(candidates, seen, line, `${line.text} ${neighbor.text}`);
+      }
+
+      if (isLabelOnlyCouponLine(line.text) && isAmountOnlyCouponLine(neighbor.text)) {
+        addCouponOfferCandidate(candidates, seen, neighbor, `${neighbor.text} ${line.text}`);
+      }
+    }
+  }
+
+  return candidates;
+}
+
 function parseCouponOption(line: OcrLine): ParsedCouponOption | null {
   const text = normalizeWhitespace(line.text);
-  if (!/(?:\b6\s*mois\b|\b2\s*ans?\b|\b1\s*an\b|\b1an\b|\blan\b|\balan\b|\b11\s*(?:nos|num[eé]ros)\b|\b12\s*(?:nos|num[eé]ros)\b|\b22\s*(?:nos|num[eé]ros)\b|\b24\s*(?:nos|num[eé]ros)\b)/i.test(text)) {
+  if (!hasCouponOptionLabel(text)) {
     return null;
   }
 
@@ -953,13 +1187,96 @@ function parseCouponOption(line: OcrLine): ParsedCouponOption | null {
   const mark = leadingOptionMark(text);
   return {
     raw: text,
-    years: /\b2\s*ans?\b/i.test(text) ? 2 : /(?:\b1\s*an\b|\b1an\b|\blan\b|\balan\b)/i.test(text) ? 1 : null,
+    years: detectCouponOptionYears(text),
     issues: issuesMatch ? Number(issuesMatch[1]) : null,
     amount,
     marked: mark.marked,
     mark: mark.mark,
     unselected: mark.unselected,
     selectionScore: mark.score,
+  };
+}
+
+function emptyCouponTermGrid(): CouponTermGrid {
+  return {
+    regular1Year: null,
+    regular2Year: null,
+    extra1Year: null,
+    extra2Year: null,
+  };
+}
+
+type CouponTermGridKey = keyof CouponTermGrid;
+
+function detectCouponTermGridKey(text: string): CouponTermGridKey | null {
+  const normalized = normalizeWhitespace(text);
+  const years = detectCouponOptionYears(normalized);
+  if (years === null) {
+    return null;
+  }
+
+  const isExtra = /\bEXTRA\b/i.test(normalized) || /\bWITH\s+PLUS\b/i.test(normalized) || /\bPLUS\b/i.test(normalized);
+  if (isExtra) {
+    return years === 2 ? "extra2Year" : "extra1Year";
+  }
+
+  if (/\bR[ÉE]GULIER\b/i.test(normalized) || /\bREGULIER\b/i.test(normalized) || years !== null) {
+    return years === 2 ? "regular2Year" : "regular1Year";
+  }
+
+  return null;
+}
+
+function extractCouponTermGrid(lines: OcrLine[]): { value: CouponTermGrid; meta?: ExtractionMeta } {
+  const termGrid = emptyCouponTermGrid();
+  const useHorizontalGeometry = hasUsefulHorizontalGeometry(lines);
+  const subscriberAnchorIndex = lines.findIndex((line) => /Pour l'abonnement de/i.test(line.text));
+  const offerLines = (subscriberAnchorIndex === -1 ? lines : lines.slice(0, subscriberAnchorIndex)).filter(
+    (line) => !useHorizontalGeometry || line.top >= 0.5,
+  );
+  const candidates = buildCouponOfferCandidates(offerLines);
+  const scored = new Map<CouponTermGridKey, { amount: number; score: number; line: string }>();
+  const conflicts: string[] = [];
+
+  for (const candidate of candidates) {
+    const key = detectCouponTermGridKey(candidate.text);
+    if (!key) {
+      continue;
+    }
+
+    const amount = extractDecimalAmounts(candidate.text).at(-1);
+    if (amount === undefined) {
+      continue;
+    }
+
+    const score =
+      (/\bEXTRA\b/i.test(candidate.text) || /\bWITH\s+PLUS\b/i.test(candidate.text) ? 3 : 0) +
+      (/\bR[ÉE]GULIER\b/i.test(candidate.text) || /\bREGULIER\b/i.test(candidate.text) ? 2 : 0) +
+      (/\b(?:1|2)\s*(?:ans?|years?)\b/i.test(candidate.text) ? 1 : 0) +
+      normalizeWhitespace(candidate.text).length / 1000;
+    const previous = scored.get(key);
+
+    if (!previous || score > previous.score) {
+      if (previous && previous.line !== candidate.text) {
+        conflicts.push(`Duplicate ${key} row; kept "${normalizeWhitespace(candidate.text)}".`);
+      }
+      scored.set(key, { amount, score, line: normalizeWhitespace(candidate.text) });
+    } else if (previous.line !== candidate.text) {
+      conflicts.push(`Duplicate ${key} row; kept "${previous.line}".`);
+    }
+  }
+
+  for (const [key, candidate] of scored.entries()) {
+    termGrid[key] = candidate.amount;
+  }
+
+  if (scored.size === 0) {
+    return { value: termGrid, meta: buildMeta("low", "conflicting", ["No regular/extra coupon term rows were captured."]) };
+  }
+
+  return {
+    value: termGrid,
+    meta: buildMeta(conflicts.length > 0 ? "medium" : "high", conflicts.length > 0 ? "conflicting" : "direct", conflicts),
   };
 }
 
@@ -999,15 +1316,36 @@ function chooseCouponOption(
   if (bestMarked) {
     const damagedMark = bestMarked.selectionScore < 3;
     const supportedByAmount = checkAmount !== null && bestMarked.amount !== null && amountsEqual(bestMarked.amount, checkAmount);
+    if (checkAmount !== null && amountMatches.length === 0 && damagedMark) {
+      return {
+        selectedOption: null,
+        selectedOptionMeta: buildMeta("low", "conflicting", [
+          `No coupon option price matches check amount ${checkAmount.toFixed(2)} and only weak mark-like rows were found.`,
+        ]),
+        paymentAmount: null,
+        paymentAmountMeta: buildMeta("low", "conflicting", ["Did not force a payment amount from weak mark-only coupon rows."]),
+      };
+    }
+
     const confidence: ExtractionConfidence = damagedMark ? "medium" : "high";
     return {
       selectedOption: bestMarked,
-      selectedOptionMeta: buildMeta(confidence, damagedMark ? "normalized" : "direct"),
+      selectedOptionMeta: buildMeta(
+        checkAmount !== null && !supportedByAmount ? "low" : confidence,
+        checkAmount !== null && !supportedByAmount ? "conflicting" : damagedMark ? "normalized" : "direct",
+        checkAmount !== null && !supportedByAmount
+          ? [`Marked option amount ${bestMarked.amount?.toFixed(2)} does not match check amount ${checkAmount.toFixed(2)}.`]
+          : undefined,
+      ),
       paymentAmount: bestMarked.amount,
       paymentAmountMeta: buildMeta(
-        confidence,
-        damagedMark ? "normalized" : "direct",
-        supportedByAmount ? ["Damaged option mark is supported by the check amount."] : undefined,
+        checkAmount !== null && !supportedByAmount ? "low" : confidence,
+        checkAmount !== null && !supportedByAmount ? "conflicting" : damagedMark ? "normalized" : "direct",
+        supportedByAmount
+          ? ["Damaged option mark is supported by the check amount."]
+          : checkAmount !== null
+            ? [`Price came from a marked row even though no option matched check amount ${checkAmount.toFixed(2)}.`]
+            : undefined,
       ),
     };
   }
@@ -1021,8 +1359,10 @@ function chooseCouponOption(
     };
   }
 
-  const strongestMark = options.filter((option) => option.marked).sort((left, right) => right.selectionScore - left.selectionScore)[0] ?? null;
-  if (strongestMark) {
+  const strongestMarked = options.filter((option) => option.marked).sort((left, right) => right.selectionScore - left.selectionScore);
+  const strongestMark = strongestMarked[0] ?? null;
+  const nextStrongestMark = strongestMarked[1] ?? null;
+  if (strongestMark && strongestMark.selectionScore >= 3 && (!nextStrongestMark || nextStrongestMark.selectionScore < strongestMark.selectionScore)) {
     return {
       selectedOption: strongestMark,
       selectedOptionMeta: buildMeta("low", "normalized", ["Selected the strongest mark-like coupon option without amount support."]),
@@ -1103,9 +1443,14 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     lines.find((line) => /Nombre de copies/i.test(line.text))?.text.match(/Nombre de copies\s*:\s*(\d+)/i)?.[1] ??
     null;
   const productName = detectProductName(lines);
-  const options = lines.map((line) => parseCouponOption(line)).filter((line): line is ParsedCouponOption => line !== null);
-  const checkAmountForOptionMatch = extractCheckAmountFromLines(checkLines) ?? extractCheckAmountNumeric(checkLines).value;
+  const optionCandidates = buildCouponOfferCandidates(lines);
+  const options = optionCandidates
+    .map((candidate) => parseCouponOption(candidate.line.text === candidate.text ? candidate.line : { ...candidate.line, text: candidate.text }))
+    .filter((line): line is ParsedCouponOption => line !== null);
+  const checkAmountNumeric = extractCheckAmountNumeric(checkLines).value;
+  const checkAmountForOptionMatch = checkAmountNumeric ?? extractCheckAmountFromLines(checkLines);
   const optionChoice = chooseCouponOption(options, checkAmountForOptionMatch);
+  const termGrid = extractCouponTermGrid(lines);
 
   const payerAnchorIndex = lines.findIndex(
     (line) => promoCode.value !== null && line.text.toUpperCase().replace(/\s+/g, "").includes(promoCode.value),
@@ -1159,6 +1504,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
     renewalCampaignCode: renewalCampaignCode ?? null,
     renewalDate,
     paymentAmount: optionChoice.paymentAmount,
+    termGrid: termGrid.value,
     copies: copies ?? null,
     options: options.map(({ marked: _marked, mark: _mark, unselected: _unselected, selectionScore: _selectionScore, ...option }) => option),
     selectedOption: optionChoice.selectedOption
@@ -1175,6 +1521,7 @@ export function extractCoupon(file: string, input: ExtractionInput): CouponExtra
       renewalCampaignCode: renewalCampaignCode ? buildMeta("medium", "direct") : undefined,
       selectedOption: optionChoice.selectedOptionMeta,
       paymentAmount: optionChoice.paymentAmountMeta,
+      termGrid: termGrid.meta,
     },
   };
 }

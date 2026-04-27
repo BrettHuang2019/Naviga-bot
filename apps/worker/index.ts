@@ -4,6 +4,7 @@ import process from "node:process";
 import { chromium } from "playwright";
 import { generateRenewalVerificationReport, getDefaultRenewalVerificationPaths } from "../../src/comparison/report.js";
 import { loadEnv } from "../../src/config/env.js";
+import { loadHomeConfigBatchId } from "../../src/config/home-config.js";
 import {
   createDomSnapshotRecorder,
   executeWorkflow,
@@ -125,6 +126,12 @@ async function runWorkflowCli(
     ...fileEnv,
     ...envOverrides,
   };
+  if (!env.NAVIGA_BATCH_ID) {
+    const homeConfigBatchId = await loadHomeConfigBatchId(rootDir);
+    if (homeConfigBatchId) {
+      env.NAVIGA_BATCH_ID = homeConfigBatchId;
+    }
+  }
   if (env.NAVIGA_PROMO_CODE && !env.NAVIGA_PROMO_LOOKUP_CODE) {
     env.NAVIGA_PROMO_LOOKUP_CODE = toNavigaPromotionLookupCode(env.NAVIGA_PROMO_CODE);
   }
@@ -150,6 +157,12 @@ async function runWorkflowCli(
   if (!env.NAVIGA_QUERY && JSON.stringify(workflows.get(workflowId)).includes("env:NAVIGA_QUERY")) {
     throw new Error(
       `Workflow "${workflowId}" requires NAVIGA_QUERY. Pass --coupon-extract <path> so it can be derived, or set NAVIGA_QUERY explicitly.`,
+    );
+  }
+
+  if (!env.NAVIGA_BATCH_ID && JSON.stringify(workflows.get(workflowId)).includes("env:NAVIGA_BATCH_ID")) {
+    throw new Error(
+      `Workflow "${workflowId}" requires NAVIGA_BATCH_ID. Set workflow/business-rules/home-config.yml or pass --env:NAVIGA_BATCH_ID explicitly.`,
     );
   }
 

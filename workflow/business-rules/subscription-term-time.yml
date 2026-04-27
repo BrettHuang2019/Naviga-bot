@@ -1,18 +1,18 @@
-version: 1
-description: Maps coupon duration to Naviga Term/Time values by Subscription Product Code.
-termTimeBySubscriptionProductCode:
-  PGC:
-    "1_year": 12
-    "2_year": 24
-  DEB:
-    "1_year": 10
-    "2_year": 20
-  PASP:
-    "1_year": 6
-    "2_year": 12
-  CUR:
+"description": "Maps coupon duration to Naviga Term/Time values by Subscription Product Code."
+"termTimeBySubscriptionProductCode":
+  "CUR":
     "1_year": 9
     "2_year": 18
-  LIT:
+  "DEB":
+    "1_year": 10
+    "2_year": 20
+  "LIT":
     "1_year": 6
     "2_year": 12
+  "PASP":
+    "1_year": 6
+    "2_year": 12
+  "PGC":
+    "1_year": 12
+    "2_year": 23
+"version": 1

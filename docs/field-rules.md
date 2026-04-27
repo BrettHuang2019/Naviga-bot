@@ -66,4 +66,4 @@ if no error - add to batch workflow.
  
 
 
-npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621 --env:NAVIGA_PROMO_CODE=DEB2600AV3 --coupon-extract artifacts\cases\2026-04-15T18-51-13Z_993764\coupon-extract.json
+npm run dev -- add-subscription-to-batch --env:NAVIGA_PROMO_CODE=DEB2600AV3 --coupon-extract artifacts\cases\2026-04-15T18-51-13Z_993764\coupon-extract.json

@@ -53,6 +53,13 @@ export type CouponOption = {
   amount: number | null;
 };
 
+export type CouponTermGrid = {
+  regular1Year: number | null;
+  regular2Year: number | null;
+  extra1Year: number | null;
+  extra2Year: number | null;
+};
+
 export type CouponExtraction = {
   file: string;
   productName: string | null;
@@ -65,6 +72,7 @@ export type CouponExtraction = {
   renewalCampaignCode: string | null;
   renewalDate: string | null;
   paymentAmount: number | null;
+  termGrid: CouponTermGrid;
   copies: string | null;
   options: CouponOption[];
   selectedOption: CouponOption | null;

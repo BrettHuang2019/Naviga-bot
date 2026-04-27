@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx apps/worker/index.ts",
     "dev:web": "tsx apps/web/index.ts",
+    "report:ocr": "node --import tsx apps/reports/generate-ocr-field-reports.ts",
     "tunnel": "cloudflared --config ./cloudflare/config.yml tunnel run naviga-tunnel",
     "dev:public": "concurrently -k -n web,tunnel -c blue,green \"npm run dev:web\" \"npm run tunnel\"",
     "test": "node --import tsx --test",

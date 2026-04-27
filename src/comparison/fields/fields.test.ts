@@ -26,6 +26,12 @@ function createContext(overrides?: {
       renewalCampaignCode: "POQLERE23",
       renewalDate: "04/10/2026",
       paymentAmount: 53.98,
+      termGrid: {
+        regular1Year: 53.98,
+        regular2Year: null,
+        extra1Year: null,
+        extra2Year: null,
+      },
       copies: "1",
       options: [],
       selectedOption: null,

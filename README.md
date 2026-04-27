@@ -6,16 +6,17 @@ Simple Playwright + TypeScript CLI prototype for browser workflows.
 
 1. Copy `.env.example` to `.env` if you want local defaults.
 2. Set stable config in `.env` or your shell environment: `ENTRY_URL`, `NAVIGA_USERNAME`, `NAVIGA_PASSWORD`, and `POWER_AUTOMATE_WEBHOOK_URL` when testing SharePoint callbacks.
-3. For the default shared testing setup, run `npm run dev:public`.
-4. If you only need the local review UI, run `npm run dev:web`.
-5. If you only need the workflow CLI, run `npm run dev`.
-6. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
-7. For local batch-entry testing, pass a coupon extract report with `--coupon-extract <path>` so `NAVIGA_TERM_TIME` can be derived from `workflow/business-rules/subscription-term-time.yml`.
+3. Set the default batch number in `workflow/business-rules/home-config.yml`.
+4. For the default shared testing setup, run `npm run dev:public`.
+5. If you only need the local review UI, run `npm run dev:web`.
+6. If you only need the workflow CLI, run `npm run dev`.
+7. Pass temporary workflow inputs on the command line with `--env:KEY=value` when needed.
+8. For local batch-entry testing, pass a coupon extract report with `--coupon-extract <path>` so `NAVIGA_TERM_TIME` can be derived from `workflow/business-rules/subscription-term-time.yml`.
 
 Examples:
 
 ```bash
-npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=4621 --env:NAVIGA_PROMO_CODE=CUR2022AV1 --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
+npm run dev -- add-subscription-to-batch --env:NAVIGA_PROMO_CODE=CUR2022AV1 --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
 ```
 
 The app config is `workflow/app.yml`. It selects browser settings, whether the browser stays open after the workflow, and the default workflow. Workflow files live in `workflow/workflows/`, and reusable page selector files live in `workflow/pages/`.
@@ -65,7 +66,7 @@ Run a specific workflow by id:
 ```bash
 npm run dev -- open-entry-site
 npm run dev -- login
-npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=<batch-id> --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
+npm run dev -- add-subscription-to-batch --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json
 ```
 
 Dependency workflows run automatically. For example:
@@ -79,7 +80,9 @@ Recommended test order:
 2. Run `npm run dev -- open-entry-site`.
 3. Check the saved DOM snapshot in `artifacts/dom/` and update page selectors.
 4. Run `npm run dev -- login`.
-5. After login selectors are stable, run `npm run dev -- add-subscription-to-batch --env:NAVIGA_BATCH_ID=<batch-id> --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json`.
+5. After login selectors are stable, run `npm run dev -- add-subscription-to-batch --env:NAVIGA_PROMO_CODE=<promo-code> --coupon-extract artifacts/cases/<case-id>/coupon-extract.json`.
+
+`add-subscription-to-batch` reads its default batch number from `workflow/business-rules/home-config.yml`. For a one-off run, `--env:NAVIGA_BATCH_ID=<batch-id>` still overrides the file.
 
 Notes:
 

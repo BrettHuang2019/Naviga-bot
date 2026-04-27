@@ -114,10 +114,25 @@ Accept these common OCR formats:
 - `20 23-01-20`
 - `2 02 3 - 0 1 -2 7`
 - `2026 - 4 - 0 6`
+- `20260311`
+- `06032026`
+- `03042026`
+- `DATE` + `2` + `026-0` + `3- 1`
+- `DATE 2026` + `- 03` + `-0` + `9`
 
 Normalize them to:
 
 - `YYYY-MM-DD`
+
+Do not treat compact `8-digit` dates as one universal format across all checks.
+The layout is template-dependent:
+
+- `YYYYMMDD` when the printed layout is year-first
+- `MMDDYYYY` when the printed layout says `MMDDYYYY`, `M M D D Y Y Y Y`, or similar
+- `DDMMYYYY` when the printed layout says `DDMMYYYY`, `J J M M A A A A`, or similar
+
+If a compact `8-digit` value is ambiguous and there is no reliable layout hint on
+the check, flag it for review instead of forcing one parse.
 
 ### Extraction rule
 
@@ -126,13 +141,19 @@ Normalize them to:
 3. Build the candidate text from:
    - the `DATE` line itself
    - plus the closest line on the same row or the next lower row if that nearby line contains mostly digits, spaces, or hyphens
+   - plus additional immediately adjacent fragments when the date is split across several short OCR lines, such as `2`, `026-0`, `3- 1`
 4. Extract the date part using a flexible pattern that allows spaces inside the year, month, and day groups.
-5. Remove extra spaces inside each numeric group, then rebuild as `YYYY-MM-DD`.
-6. Validate the normalized result:
+5. Also support compact `8-digit` date strings when they are anchored to `DATE` or appear in the top-right date band:
+   - prefer `YYYYMMDD` when the first four digits look like `20xx`
+   - otherwise read the compact value using the printed date-layout hint on that check, such as `MMDDYYYY`, `DDMMYYYY`, `M M D D Y Y Y Y`, or `J J M M A A A A`
+   - if both month-first and day-first parses are valid and no layout hint is readable, return `null` and flag for review
+6. Remove extra spaces inside each numeric group, then rebuild as `YYYY-MM-DD`.
+7. Validate the normalized result:
    - year must be 4 digits
    - month must be `01-12`
    - day must be `01-31`
-7. Reject any candidate from below the check region cutoff, even if it looks cleaner.
+   - do not invent missing year digits from a 6-digit or 7-digit OCR fragment
+8. Reject any candidate from below the check region cutoff, even if it looks cleaner.
 
 Suggested normalization approach:
 
@@ -142,6 +163,16 @@ Suggested normalization approach:
 - allow month or day to be `1` digit only when it is anchored to `DATE` and
   nearby fragments make the value unambiguous; pad to `2` digits during
   normalization
+- also match compact 8-digit strings such as `20260311`, `06032026`, or
+  `03042026`
+- if the compact value starts with `20`, parse as `YYYYMMDD`
+- otherwise, use the printed date-layout hint on that check to decide between
+  `MMDDYYYY` and `DDMMYYYY`
+- if no hint is readable and both parses are valid, send the field to review
+- when the `DATE` anchor is followed by several tiny numeric fragments on
+  nearby lines, concatenate them in reading order before pattern matching
+- widen the nearby-fragment search around `DATE` enough to catch small pieces
+  just above or just below the anchor row
 
 ### Best choice
 
@@ -164,6 +195,9 @@ Mark as `medium confidence` when:
 
 - the date is readable but spacing is messy, such as `20 23-01-09`
 - the value is recovered by merging `DATE` with the next line
+- the value is recovered by merging `DATE` with several adjacent short lines
+- the value comes from an anchored compact `8-digit` string with a readable
+  layout hint, such as `06032026` plus `MMDDYYYY`
 - the line does not contain `DATE`, but the date pattern is still clear and still in the top-right check area
 
 Mark as `low confidence` when:
@@ -172,6 +206,7 @@ Mark as `low confidence` when:
 - the year, month, or day is unclear
 - multiple different dates appear in the check region
 - the extracted value only works after aggressive guessing
+- the compact date is ambiguous and no reliable layout hint is readable
 
 ### Review trigger
 
@@ -183,6 +218,8 @@ Flag for review when:
 - the OCR looks heavily broken, such as `1 1 2 2 0 2 2`
 - the only strong date candidate is outside the check region
 - the check-region date conflicts with another nearby date-like string
+- the compact date can be read as both month-first and day-first
+- the OCR only exposes an incomplete compact year fragment such as `110320`
 
 ### Example
 
@@ -193,7 +230,13 @@ Flag for review when:
 - Medium: `DATE 2 02 3 - 0 1 -2 7` -> `2023-01-27`
 - Medium: `DATE 2026 -` plus nearby fragments `4`, `-`, `0`, `6` ->
   `2026-04-06`
+- Medium: `DATE 20260311` -> `2026-03-11`
+- Medium: `DATE 06032026` + printed hint `DDMMYYYY` -> `2026-03-06`
+- Medium: `DATE 06032026` + printed hint `MMDDYYYY` -> `2026-06-03`
+- Medium: `DATE` + `2` + `026-0` + `3- 1` -> `2026-03-01`
 - Review: `1 1 2 2 0 2 2`
+- Review: `DATE 06032026` with no readable layout hint
+- Review: `DATE 110320`
 
 ### Output
 
@@ -232,6 +275,13 @@ The payee text is usually one of:
 - `Bayard Press Canada inc.`
 - `Publications BLD`
 - OCR may emit `Publication BLD`; normalize this to `Publications BLD`.
+
+In the newer 2026 batch, OCR occasionally damages the payee into near-matches
+or unrelated coupon-brand text, such as:
+
+- `BALIO THE`
+- `novale`
+- `Living with Christ`
 
 Sometimes OCR merges the payee with the numeric amount on the same line, for example:
 
@@ -284,7 +334,15 @@ Also accept French continuation patterns when OCR splits the anchor:
      - `45.04`
    - collapse repeated spaces
 6. Reject the candidate if, after cleanup, it is mostly numeric or looks like only an amount.
-7. Return the cleaned organization name.
+7. Reject coupon product names and offer text even when they are alphabetic, such as:
+   - `Living with Christ`
+   - `Curium`
+   - `Prions en Église`
+   - `iLivingwithChrist`
+8. If the cleaned text is a close OCR-damaged variant of an expected payee, normalize it:
+   - `Publication BLD` -> `Publications BLD`
+   - close variants of `Bayard Press Canada` / `Bayard Presse Canada` stay `medium confidence`
+9. Return the cleaned organization name.
 
 ### Suggested cleanup pattern
 
@@ -319,12 +377,16 @@ Mark as `medium confidence` when:
 - the anchor exists but the payee is split across two nearby lines
 - the line contains both payee text and amount text, but cleanup is straightforward
 - the spelling is slightly damaged but the organization is still obvious, such as `Bayard Press Canada inc.`
+- the payee is recoverable only by normalizing a close OCR variant, such as
+  `novale` -> expected `Novalis` or a near-match to `Bayard Press Canada`
 
 Mark as `low confidence` when:
 
 - no strong anchor exists
 - multiple nearby text lines could be the payee
 - the candidate is heavily OCR-damaged
+- the best anchored candidate looks like a coupon product name instead of an
+  organization payee
 - the extracted result is only recoverable by weak heuristics
 
 ### Review trigger
@@ -342,8 +404,11 @@ Flag for review when:
 - Good: `PAYEZ À` + `Bayard Press Canada inc. 71. 23 $` -> `Bayard Press Canada inc.`
 - Good: `PAYEZ` + `Bayard Presse Canada inc.` -> `Bayard Presse Canada inc.`
 - Good: `PAYEZ À` + `Publications BLD` -> `Publications BLD`
+- Medium: `PAY TO THE` + `BALIO THE` with nearby expected-payee context ->
+  normalize only if other evidence supports `Bayard Press Canada`
 - Reject: `45.04`
 - Reject: `POUR Renouvellement Curium`
+- Reject: `Living with Christ`
 
 ### Output
 
@@ -414,6 +479,8 @@ Accept these OCR shapes:
 - `71 , 23`
 - `$4515`, when it appears on the payee/amount line and should normalize to `45.15`
 - `$-68.93-`, when OCR adds stray dash characters around the amount
+- `56.400`, when OCR injects an extra trailing zero near a valid `56.40` or
+  `56.45` style amount
 
 Reject likely non-amount lines such as:
 
@@ -435,11 +502,18 @@ Reject likely non-amount lines such as:
    - convert `,` to `.`
    - remove spaces around the decimal separator
    - remove surrounding currency symbols
-6. Return the normalized value as `NN.NN`.
+   - trim stray leading or trailing dash characters
+   - if OCR emits `\d{2}\.\d{3}` or `\d{2},\d{3}`, treat it as damaged and
+     keep only `low confidence` unless nearby words or coupon rows confirm the
+     intended cents
+6. Return the normalized value as `NN.NN` when possible.
 7. If multiple candidates exist, prefer the one:
    - farthest right
    - closest to the payee / amount row
    - with the cleanest `2-digit` decimal part
+8. If two nearby amount candidates differ only because one has damaged cents,
+   such as `56.400` vs `56,45`, keep the better-formed one and lower
+   confidence.
 
 Suggested pattern:
 
@@ -462,6 +536,7 @@ Mark numeric amount as `low confidence` when:
 - the best candidate conflicts with another nearby amount
 - the decimal part is unclear
 - the only candidate is mixed with heavy OCR damage
+- the OCR produces a malformed amount like `56.400`
 
 ### B. Amount in words
 
@@ -595,6 +670,8 @@ Flag for review when:
 - Medium: `86 , 18` + readable words line with `18/100` but damaged integer words -> return `86.18`, lower confidence
 - Review: `83.62` on the check but amount words parse closer to `63/100`
 - Review: two different right-side amounts appear in the check band
+- Review: malformed numeric amount like `56.400` competes with a cleaner coupon
+  row amount such as `56,45`
 
 ### Output
 

@@ -17,6 +17,7 @@ import {
 } from "../comparison/index.js";
 import { parseOcrPayload } from "../comparison/ocr-parser.js";
 import { loadEnv } from "../config/env.js";
+import { loadHomeConfigBatchId } from "../config/home-config.js";
 import {
   createDomSnapshotRecorder,
   executeWorkflow,
@@ -196,7 +197,8 @@ const checkFields = [
 const couponFields = [
   { rule: "1. Coupon Client ID", extractorField: "subscriberClientNumber" },
   { rule: "2. Coupon Option Chosen and Option Price", extractorField: "selectedOption" },
-  { rule: "3. Coupon Promo Code", extractorField: "promoCode" },
+  { rule: "3. Coupon Term Grid: Regular vs Extra", extractorField: "termGrid" },
+  { rule: "4. Coupon Promo Code", extractorField: "promoCode" },
 ] as const satisfies ReadonlyArray<{ rule: string; extractorField: keyof CouponExtraction }>;
 
 function selectedCouponOptionValue(extraction: CouponExtraction): { option: string | null; price: string | null } {
@@ -366,6 +368,15 @@ async function runBrowserWorkflow(params: {
   }
 }
 
+async function buildWorkflowEnvWithBatchId(rootDir: string, env: Record<string, string>): Promise<Record<string, string>> {
+  if (env.NAVIGA_BATCH_ID) {
+    return env;
+  }
+
+  const homeConfigBatchId = await loadHomeConfigBatchId(rootDir);
+  return homeConfigBatchId ? { ...env, NAVIGA_BATCH_ID: homeConfigBatchId } : env;
+}
+
 export async function runBatchWorkflow(params: {
   subscriberClientNumber: string;
   promoCode?: string | null;
@@ -427,7 +438,7 @@ export async function runBatchWorkflow(params: {
           (params.couponExtractPath
             ? path.join(path.dirname(params.couponExtractPath), "Naviga-subscription-summary.json")
             : null);
-        const env = {
+        const env = await buildWorkflowEnvWithBatchId(rootDir, {
           ...fileEnv,
           NAVIGA_QUERY: params.subscriberClientNumber,
           ...(params.promoCode ? { NAVIGA_PROMO_CODE: params.promoCode } : {}),
@@ -435,7 +446,7 @@ export async function runBatchWorkflow(params: {
           NAVIGA_TERM_TIME: termTime,
           ...(params.couponExtractPath ? { NAVIGA_COUPON_EXTRACT_PATH: params.couponExtractPath } : {}),
           ...(subscriptionSummaryOutputPath ? { NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH: subscriptionSummaryOutputPath } : {}),
-        };
+        });
 
         await runBrowserWorkflow({
           rootDir,
