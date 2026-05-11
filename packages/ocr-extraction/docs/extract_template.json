@@ -1,0 +1,21 @@
+{
+  "check": {
+    "checkNumber": "",
+    "date": "",
+    "payTo": "",
+    "amountNumber": "",
+    "amountWords": "",
+    "payerName": "",
+    "payerAddress": ""
+  },
+  "coupon": {
+    "clientId": "",
+    "clientName": "",
+    "promoCode": "",
+    "optionAmount": "",
+    "optionChosen": "",
+    "priceFromChosenOption": "",
+    "issuesFromChosenOption": "",
+    "regularOrExtra": ""
+  }
+}

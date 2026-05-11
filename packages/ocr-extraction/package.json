@@ -1,0 +1,25 @@
+{
+  "name": "@naviga-bot/ocr-extraction",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained OCR information extraction library for Naviga income documents.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./comparison": "./src/comparison/index.ts",
+    "./types": "./src/comparison/types.ts",
+    "./ocr-parser": "./src/comparison/ocr-parser.ts",
+    "./normalization": "./src/comparison/normalization.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test src/codex-extraction.test.ts",
+    "test:fixtures": "node --import tsx --test src/comparison/check-field-report.test.ts src/comparison/coupon-field-report.test.ts src/comparison/included-fixtures.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
