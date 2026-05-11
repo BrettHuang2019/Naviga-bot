@@ -103,16 +103,39 @@ type CaseArtifacts = {
   pipeline: CasePipelineStatus | null;
 };
 
-type SubscriptionTermTimeRules = {
-  version: number;
-  description?: string;
-  termTimeBySubscriptionProductCode: Record<string, Record<string, number | string>>;
+type PromoCodeTerm = {
+  label?: string | null;
+  issueText?: string | null;
+  issues?: number | null;
+  price?: number | null;
+  sourceColumn?: number | null;
 };
 
-type SubscriptionTermTimeRow = {
-  productCode: string;
-  durationKey: string;
-  termTime: string;
+type PromoCodeIssueDetail = {
+  code: string;
+  publication?: string | null;
+  category?: string | null;
+  offer?: string | null;
+  terms?: PromoCodeTerm[];
+  discount?: number | null;
+  premium?: string | number | null;
+  endDate?: string | null;
+  source?: {
+    file?: string | null;
+    sheet?: string | null;
+    row?: number | null;
+  } | null;
+};
+
+type PromoCodeIssueDetailsFile = {
+  generatedAt?: string;
+  summary?: {
+    files?: string[];
+    entryCount?: number;
+    uniqueCodeCount?: number;
+    duplicateCodeCount?: number;
+  };
+  promoCodes?: Record<string, PromoCodeIssueDetail>;
 };
 
 type HomeConfig = {
@@ -181,121 +204,18 @@ async function writeHomeConfig(rootDir: string, homeConfig: HomeConfig): Promise
   await fs.writeFile(getHomeConfigPath(rootDir), yaml, "utf8");
 }
 
-function getSubscriptionTermTimeRulesPath(rootDir: string): string {
-  return path.join(rootDir, "workflow", "business-rules", "subscription-term-time.yml");
+function getPromoCodeIssueDetailsPath(rootDir: string): string {
+  return path.join(rootDir, "workflow", "business-rules", "excel-promo-code-terms.json");
 }
 
-async function readSubscriptionTermTimeRules(rootDir: string): Promise<SubscriptionTermTimeRules> {
-  const filePath = getSubscriptionTermTimeRulesPath(rootDir);
-  const raw = await fs.readFile(filePath, "utf8");
-  const parsed = parse(raw);
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("Subscription term/time rules file is invalid.");
-  }
-
-  const rules = parsed as Partial<SubscriptionTermTimeRules>;
+async function readPromoCodeIssueDetails(rootDir: string): Promise<PromoCodeIssueDetailsFile> {
+  const filePath = getPromoCodeIssueDetailsPath(rootDir);
+  const parsed = await readJson<PromoCodeIssueDetailsFile>(filePath);
   return {
-    version: typeof rules.version === "number" ? rules.version : 1,
-    description: typeof rules.description === "string" ? rules.description : undefined,
-    termTimeBySubscriptionProductCode:
-      rules.termTimeBySubscriptionProductCode && typeof rules.termTimeBySubscriptionProductCode === "object"
-        ? rules.termTimeBySubscriptionProductCode
-        : {},
+    generatedAt: parsed.generatedAt,
+    summary: parsed.summary,
+    promoCodes: parsed.promoCodes && typeof parsed.promoCodes === "object" ? parsed.promoCodes : {},
   };
-}
-
-function getSubscriptionTermTimeRows(rules: SubscriptionTermTimeRules): SubscriptionTermTimeRow[] {
-  return Object.entries(rules.termTimeBySubscriptionProductCode)
-    .flatMap(([productCode, durationMap]) =>
-      Object.entries(durationMap).map(([durationKey, termTime]) => ({
-        productCode,
-        durationKey,
-        termTime: String(termTime),
-      }))
-    )
-    .sort((left, right) =>
-      left.productCode.localeCompare(right.productCode) ||
-      left.durationKey.localeCompare(right.durationKey)
-    );
-}
-
-function normalizeSubscriptionTermTimeValue(value: string): number | string {
-  return /^\d+$/.test(value) ? Number(value) : value;
-}
-
-function buildSubscriptionTermTimeRulesFromRows(
-  rows: SubscriptionTermTimeRow[],
-  previousRules: SubscriptionTermTimeRules,
-): SubscriptionTermTimeRules {
-  const termTimeBySubscriptionProductCode: Record<string, Record<string, number | string>> = {};
-
-  for (const row of rows) {
-    const productCode = row.productCode.trim().toUpperCase();
-    const durationKey = row.durationKey.trim();
-    const termTime = row.termTime.trim();
-
-    if (!productCode || !durationKey || !termTime) {
-      throw new Error("Each row must include product code, duration key, and term/time.");
-    }
-
-    if (!termTimeBySubscriptionProductCode[productCode]) {
-      termTimeBySubscriptionProductCode[productCode] = {};
-    }
-
-    termTimeBySubscriptionProductCode[productCode][durationKey] = normalizeSubscriptionTermTimeValue(termTime);
-  }
-
-  return {
-    version: previousRules.version,
-    description: previousRules.description,
-    termTimeBySubscriptionProductCode,
-  };
-}
-
-async function writeSubscriptionTermTimeRules(rootDir: string, rules: SubscriptionTermTimeRules): Promise<void> {
-  const filePath = getSubscriptionTermTimeRulesPath(rootDir);
-  const yaml = stringify(rules, {
-    defaultStringType: "QUOTE_DOUBLE",
-    lineWidth: 0,
-    sortMapEntries: true,
-  });
-  await fs.writeFile(filePath, yaml, "utf8");
-}
-
-function toStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item));
-  }
-
-  if (value === undefined || value === null) {
-    return [];
-  }
-
-  return [String(value)];
-}
-
-function parseSubscriptionTermTimeRows(body: Request["body"]): SubscriptionTermTimeRow[] {
-  const productCodes = toStringArray(body.productCode);
-  const durationKeys = toStringArray(body.durationKey);
-  const termTimes = toStringArray(body.termTime);
-  const rowCount = Math.max(productCodes.length, durationKeys.length, termTimes.length);
-  const rows: SubscriptionTermTimeRow[] = [];
-
-  for (let index = 0; index < rowCount; index += 1) {
-    const row = {
-      productCode: (productCodes[index] ?? "").trim(),
-      durationKey: (durationKeys[index] ?? "").trim(),
-      termTime: (termTimes[index] ?? "").trim(),
-    };
-
-    if (!row.productCode && !row.durationKey && !row.termTime) {
-      continue;
-    }
-
-    rows.push(row);
-  }
-
-  return rows;
 }
 
 async function readFirstJsonOrNull<T>(dirPath: string, fileNames: string[]): Promise<T | null> {
@@ -592,7 +512,7 @@ function caseListHtml(args: {
       <h2 class="page-title">Cases</h2>
       <div class="toolbar-actions">
         ${batchEditor}
-        <a href="/settings/subscription-term-time" class="btn btn-secondary">Term/time settings</a>
+        <a href="/issues-detail" class="btn btn-secondary">Issues detail</a>
         <form method="post" action="/cases/clear" onsubmit="return confirm('Delete all case history? This cannot be undone.');">
           <button type="submit" class="btn btn-danger">Clear history</button>
         </form>
@@ -612,103 +532,121 @@ function caseListHtml(args: {
   return layout("Cases", "", body);
 }
 
-function subscriptionTermTimeSettingsHtml(args: {
-  rows: SubscriptionTermTimeRow[];
-  message?: string;
+function formatIssuePrice(value: number | null | undefined): string {
+  return value === null || value === undefined ? "—" : `$${value.toFixed(2)}`;
+}
+
+function issueSearchText(issue: PromoCodeIssueDetail): string {
+  return [
+    issue.code,
+    issue.publication,
+    issue.category,
+    issue.offer,
+    issue.discount,
+    issue.premium,
+    issue.endDate,
+    issue.source?.file,
+    issue.source?.sheet,
+    issue.source?.row,
+    ...(issue.terms ?? []).flatMap((term) => [
+      term.label,
+      term.issueText,
+      term.issues,
+      term.price,
+      term.sourceColumn,
+    ]),
+  ]
+    .filter((value) => value !== null && value !== undefined)
+    .map((value) => String(value).toLowerCase())
+    .join(" ");
+}
+
+function issueTermsHtml(terms: PromoCodeTerm[] | undefined): string {
+  if (!terms || terms.length === 0) {
+    return `<span class="field-value null">—</span>`;
+  }
+
+  return `<div class="issue-terms">${terms.map((term) => `<div class="issue-term">
+    <span class="issue-term-label">${esc(term.label ?? "Term")}</span>
+    <span>${esc(term.issueText ?? "—")}</span>
+    <span>${esc(term.issues === null || term.issues === undefined ? "—" : `${term.issues} issues`)}</span>
+    <span>${esc(formatIssuePrice(term.price))}</span>
+  </div>`).join("")}</div>`;
+}
+
+function issueDetailRowHtml(issue: PromoCodeIssueDetail): string {
+  const source = [
+    issue.source?.file,
+    issue.source?.sheet,
+    issue.source?.row === null || issue.source?.row === undefined ? null : `row ${issue.source.row}`,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0).join(" / ");
+
+  return `<tr>
+    <td><strong>${esc(issue.code)}</strong></td>
+    <td>${esc(issue.publication ?? "—")}</td>
+    <td>${esc(issue.category ?? "—")}</td>
+    <td>${esc(issue.offer ?? "—")}</td>
+    <td>${issueTermsHtml(issue.terms)}</td>
+    <td>${esc(issue.discount === null || issue.discount === undefined ? "—" : String(issue.discount))}</td>
+    <td>${esc(issue.premium === null || issue.premium === undefined ? "—" : String(issue.premium))}</td>
+    <td>${esc(issue.endDate ?? "—")}</td>
+    <td>${esc(source || "—")}</td>
+  </tr>`;
+}
+
+function issueDetailsHtml(args: {
+  data: PromoCodeIssueDetailsFile;
+  query: string;
   error?: string;
 }): string {
-  const rows = args.rows.length > 0 ? args.rows : [{ productCode: "", durationKey: "", termTime: "" }];
-  const flash = args.error
-    ? `<div class="notice error">${esc(args.error)}</div>`
-    : args.message
-      ? `<div class="notice success">${esc(args.message)}</div>`
-      : "";
-  const rowsHtml = rows.map((row) => subscriptionTermTimeRowHtml(row)).join("");
+  const normalizedQuery = args.query.trim().toLowerCase();
+  const allRows = Object.values(args.data.promoCodes ?? {}).sort((left, right) => left.code.localeCompare(right.code));
+  const rows = normalizedQuery
+    ? allRows.filter((issue) => issueSearchText(issue).includes(normalizedQuery))
+    : allRows;
+  const summary = args.data.summary;
+  const flash = args.error ? `<div class="notice error">${esc(args.error)}</div>` : "";
+  const rowsHtml = rows.map((row) => issueDetailRowHtml(row)).join("");
   const body = `
     <div class="page-topbar">
       <a href="/" class="btn btn-secondary">← All cases</a>
     </div>
     <section class="settings-panel">
       <div class="section-heading">
-        <h2>Subscription term/time settings</h2>
-        <span>Edit YAML-backed mappings used for 1 year, 2 year, and other duration rules.</span>
+        <h2>Issues detail</h2>
+        <span>Read-only promo code terms from workflow/business-rules/excel-promo-code-terms.json</span>
       </div>
       <div class="settings-body">
         ${flash}
-        <form method="post" action="/settings/subscription-term-time" id="term-time-form">
-          <div class="toolbar-actions settings-actions">
-            <button type="button" class="btn btn-secondary" id="add-term-time-row">Add entry</button>
-            <button type="submit" class="btn btn-primary">Save settings</button>
-          </div>
-          <div class="settings-list-wrap">
-            <div class="settings-list-head">
-              <span>Product code</span>
-              <span>Duration key</span>
-              <span>Term/time</span>
-              <span>Action</span>
-            </div>
-            <div id="term-time-rows" class="settings-list">${rowsHtml}</div>
-          </div>
+        <div class="issue-summary">
+          <span>${esc(String(summary?.entryCount ?? allRows.length))} entries</span>
+          <span>${esc(String(summary?.uniqueCodeCount ?? allRows.length))} unique codes</span>
+          <span>${esc(String(summary?.duplicateCodeCount ?? 0))} duplicates</span>
+          <span>Generated ${esc(args.data.generatedAt ?? "—")}</span>
+        </div>
+        <form method="get" action="/issues-detail" class="search-form">
+          <label class="search-label">
+            <span class="sr-only">Search issues detail</span>
+            <input name="q" value="${esc(args.query)}" placeholder="Search code, publication, offer, issue text, price, source..." autocomplete="off" />
+          </label>
+          <button type="submit" class="btn btn-primary">Search</button>
+          ${args.query ? `<a href="/issues-detail" class="btn btn-ghost">Clear</a>` : ""}
         </form>
+        <div class="issue-count">${esc(String(rows.length))} of ${esc(String(allRows.length))} rows</div>
+        ${rows.length > 0 ? `<div class="issues-table-wrap">
+          <table class="cases-table issues-table">
+            <thead>
+              <tr>
+                <th>Code</th><th>Publication</th><th>Category</th><th>Offer</th><th>Terms</th><th>Discount</th><th>Premium</th><th>End date</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>` : `<div class="empty-state">No issue detail rows match this search.</div>`}
       </div>
-    </section>
-    <template id="term-time-row-template">${subscriptionTermTimeRowHtml({ productCode: "", durationKey: "", termTime: "" })}</template>
-    <script>
-      const rowsContainer = document.getElementById("term-time-rows");
-      const rowTemplate = document.getElementById("term-time-row-template");
-      const addButton = document.getElementById("add-term-time-row");
+    </section>`;
 
-      function bindRemove(button) {
-        button.addEventListener("click", () => {
-          const row = button.closest(".settings-row");
-          if (!row) return;
-          row.remove();
-
-          if (rowsContainer.children.length === 0 && rowTemplate instanceof HTMLTemplateElement) {
-            rowsContainer.appendChild(rowTemplate.content.firstElementChild.cloneNode(true));
-            bindAllRemoveButtons();
-          }
-        });
-      }
-
-      function bindAllRemoveButtons() {
-        rowsContainer.querySelectorAll("[data-remove-row]").forEach((button) => {
-          if (!(button instanceof HTMLButtonElement) || button.dataset.bound === "true") return;
-          button.dataset.bound = "true";
-          bindRemove(button);
-        });
-      }
-
-      addButton?.addEventListener("click", () => {
-        if (!(rowTemplate instanceof HTMLTemplateElement) || !rowsContainer) return;
-        rowsContainer.appendChild(rowTemplate.content.firstElementChild.cloneNode(true));
-        bindAllRemoveButtons();
-      });
-
-      bindAllRemoveButtons();
-    </script>`;
-
-  return layout("Term/time settings", "", body);
-}
-
-function subscriptionTermTimeRowHtml(row: SubscriptionTermTimeRow): string {
-  return `<div class="settings-row">
-    <label class="settings-cell">
-      <span class="sr-only">Product code</span>
-      <input name="productCode" value="${esc(row.productCode)}" placeholder="PGC" autocomplete="off" required />
-    </label>
-    <label class="settings-cell">
-      <span class="sr-only">Duration key</span>
-      <input name="durationKey" value="${esc(row.durationKey)}" placeholder="1_year" autocomplete="off" required />
-    </label>
-    <label class="settings-cell">
-      <span class="sr-only">Term/time</span>
-      <input name="termTime" value="${esc(row.termTime)}" placeholder="12" autocomplete="off" required />
-    </label>
-    <div class="settings-cell action">
-      <button type="button" class="btn btn-ghost" data-remove-row>Remove</button>
-    </div>
-  </div>`;
+  return layout("Issues detail", "", body);
 }
 
 function pipelineStageBadge(status: string | null | undefined): string {
@@ -1107,44 +1045,24 @@ function createReviewRouter(rootDir: string): Router {
     res.redirect(303, "/?message=Batch%20number%20saved");
   });
 
-  router.get("/settings/subscription-term-time", async (req: Request, res: Response) => {
+  router.get("/issues-detail", async (req: Request, res: Response) => {
+    const query = typeof req.query["q"] === "string" ? req.query["q"] : "";
     try {
-      const rules = await readSubscriptionTermTimeRules(rootDir);
-      const rows = getSubscriptionTermTimeRows(rules);
-      const message = typeof req.query["message"] === "string" ? req.query["message"] : undefined;
-      const error = typeof req.query["error"] === "string" ? req.query["error"] : undefined;
-      res.send(subscriptionTermTimeSettingsHtml({ rows, message, error }));
+      const data = await readPromoCodeIssueDetails(rootDir);
+      res.send(issueDetailsHtml({ data, query }));
     } catch (error: unknown) {
       res.status(500).send(
-        subscriptionTermTimeSettingsHtml({
-          rows: [],
+        issueDetailsHtml({
+          data: { promoCodes: {} },
+          query,
           error: error instanceof Error ? error.message : String(error),
         }),
       );
     }
   });
 
-  router.post("/settings/subscription-term-time", async (req: Request, res: Response) => {
-    try {
-      const previousRules = await readSubscriptionTermTimeRules(rootDir);
-      const rows = parseSubscriptionTermTimeRows(req.body);
-      const nextRules = buildSubscriptionTermTimeRulesFromRows(rows, previousRules);
-      await writeSubscriptionTermTimeRules(rootDir, nextRules);
-      res.redirect(303, "/settings/subscription-term-time?message=Settings%20saved");
-    } catch (error: unknown) {
-      const rules = await readSubscriptionTermTimeRules(rootDir).catch(() => ({
-        version: 1,
-        description: undefined,
-        termTimeBySubscriptionProductCode: {},
-      }));
-      const submittedRows = parseSubscriptionTermTimeRows(req.body);
-      res.status(400).send(
-        subscriptionTermTimeSettingsHtml({
-          rows: submittedRows.length > 0 ? submittedRows : getSubscriptionTermTimeRows(rules),
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    }
+  router.get("/settings/subscription-term-time", (_req: Request, res: Response) => {
+    res.redirect(301, "/issues-detail");
   });
 
   router.post("/cases/clear", async (_req: Request, res: Response) => {
