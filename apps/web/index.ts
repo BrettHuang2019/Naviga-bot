@@ -5,9 +5,8 @@ import path from "node:path";
 import process from "node:process";
 import { parse, stringify } from "yaml";
 import { loadEnv } from "../../src/config/env.js";
-import { extractCoupon, type CheckExtraction, type CouponExtraction, type IncomeExtraction, type OcrPayload } from "../../src/comparison/index.js";
+import { type CheckExtraction, type CouponExtraction, type IncomeExtraction, type OcrPayload } from "../../src/comparison/index.js";
 import { amountsEqual, fuzzyAddressMatch, fuzzyNameMatch, normalizeForCompare, toAmount, toDigits } from "../../src/comparison/normalization.js";
-import { parseOcrText } from "../../src/comparison/ocr-parser.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
 import { processOcrPayload, runBatchWorkflow, type StoredCase } from "../../src/worker/index.js";
 
@@ -1225,10 +1224,7 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
 
   router.post("/intake", async (request: Request, response: Response) => {
     try {
-      const ocrText = typeof request.body?.ocrText === "string" ? request.body.ocrText : "";
-      const parsedOcr = ocrText ? parseOcrText(ocrText) : null;
-      const { subscriberClientNumber } = parsedOcr ? extractCoupon("", parsedOcr) : { subscriberClientNumber: null };
-      const artifactPath = await saveOcrArtifact(request.body, subscriberClientNumber);
+      const artifactPath = await saveOcrArtifact(request.body);
 
       console.log(timestampedMessage("Received SharePoint OCR intake payload:"));
       console.dir(request.body, { depth: null });

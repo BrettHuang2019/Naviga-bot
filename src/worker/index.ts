@@ -2,9 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
+import { extractOcrJsonWithCodex, type ExtractJson } from "../../packages/ocr-extraction/src/index.js";
 import {
-  extractCoupon,
-  extractIncomeDocument,
   type CheckExtraction,
   type CouponExtraction,
   type IncomeExtraction,
@@ -15,6 +14,7 @@ import {
   type SubscriptionDetail,
   type VerificationReport,
 } from "../comparison/index.js";
+import { toAmount } from "../comparison/normalization.js";
 import { parseOcrPayload } from "../comparison/ocr-parser.js";
 import { loadEnv } from "../config/env.js";
 import { loadHomeConfigBatchId } from "../config/home-config.js";
@@ -168,6 +168,122 @@ async function enqueueWorkflowTask<T>(task: WorkflowQueueTask<T>): Promise<T> {
 function createCaseId(date: Date, clientNumber?: string | null): string {
   const timestamp = date.toISOString().replaceAll(":", "-").replace(/\.\d{3}Z$/, "Z");
   return clientNumber ? `${timestamp}_${clientNumber}` : timestamp;
+}
+
+function stringOrNull(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function amountOrNull(value: string | null | undefined): number | null {
+  return toAmount(stringOrNull(value));
+}
+
+function yearsFromOption(option: string | null): number | null {
+  if (!option) {
+    return null;
+  }
+
+  if (/\b1\s*(?:year|an)\b/i.test(option)) {
+    return 1;
+  }
+
+  if (/\b2\s*(?:years?|ans?)\b/i.test(option)) {
+    return 2;
+  }
+
+  return null;
+}
+
+function issuesFromOption(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.replace(",", ".").trim();
+  if (/^\d+$/.test(normalized)) {
+    return Number(normalized);
+  }
+
+  return null;
+}
+
+function adaptCodexExtractToIncomeExtraction(params: {
+  file: string;
+  parsedDocument: ParsedOcrDocument;
+  extract: ExtractJson;
+}): IncomeExtraction {
+  const { file, parsedDocument, extract } = params;
+  const selectedOptionRaw = stringOrNull(extract.coupon.optionChosen);
+  const selectedOptionAmount = amountOrNull(extract.coupon.priceFromChosenOption) ?? amountOrNull(extract.coupon.optionAmount);
+  const rawTextPreview = parsedDocument.lines.slice(0, 30).map((line) => line.text).join(" | ");
+
+  const selectedOption =
+    selectedOptionRaw || selectedOptionAmount !== null
+      ? {
+          raw: selectedOptionRaw ?? "",
+          years: yearsFromOption(selectedOptionRaw),
+          issues: issuesFromOption(stringOrNull(extract.coupon.issuesFromChosenOption)),
+          amount: selectedOptionAmount,
+        }
+      : null;
+
+  return {
+    check: {
+      file,
+      checkNumber: stringOrNull(extract.check.checkNumber),
+      date: stringOrNull(extract.check.date),
+      payTo: stringOrNull(extract.check.payTo),
+      amountNumber: amountOrNull(extract.check.amountNumber),
+      amountWords: stringOrNull(extract.check.amountWords),
+      payerName: stringOrNull(extract.check.payerName),
+      payerAddress: stringOrNull(extract.check.payerAddress),
+      rawTextPreview,
+      fieldMeta: {
+        checkNumber: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        date: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        payTo: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        amountNumber: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        amountWords: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        payerName: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        payerAddress: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+      },
+    },
+    coupon: {
+      file,
+      productName: null,
+      subscriberName: stringOrNull(extract.coupon.clientName),
+      subscriberClientNumber: stringOrNull(extract.coupon.clientId),
+      billToNameId: null,
+      payerName: null,
+      payerAddress: null,
+      promoCode: stringOrNull(extract.coupon.promoCode),
+      renewalCampaignCode: null,
+      renewalDate: null,
+      paymentAmount: selectedOptionAmount,
+      termGrid: {
+        regular1Year: null,
+        regular2Year: null,
+        extra1Year: null,
+        extra2Year: null,
+      },
+      copies: null,
+      options: selectedOption ? [selectedOption] : [],
+      selectedOption,
+      rawTextPreview,
+      fieldMeta: {
+        subscriberClientNumber: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        subscriberName: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        promoCode: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        selectedOption: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+        paymentAmount: { confidence: "medium", source: "direct", notes: ["Extracted by Codex OCR extraction package."] },
+      },
+    },
+  };
 }
 
 function getCasePaths(rootDir: string, caseId: string) {
@@ -512,14 +628,25 @@ export async function processOcrPayload(
 ): Promise<StoredCase> {
   const rootDir = options.rootDir ?? process.cwd();
   const runSubscriptionWorkflow = options.runSubscriptionWorkflow ?? true;
+  const createdAt = new Date();
+  const initialCaseId = createCaseId(createdAt);
   const parsedDocument: ParsedOcrDocument = parseOcrPayload(payload);
-  const { subscriberClientNumber } = extractCoupon("", parsedDocument);
+  const codexExtraction = await extractOcrJsonWithCodex(payload, {
+    caseId: initialCaseId,
+    casesDir: path.join(rootDir, "artifacts", "codex-cases"),
+  });
+  const subscriberClientNumber = stringOrNull(codexExtraction.extract.coupon.clientId);
   if (!subscriberClientNumber) {
     throw new Error("Unable to derive the subscriber client number from the OCR payload.");
   }
 
-  const caseId = createCaseId(new Date(), subscriberClientNumber);
+  const caseId = createCaseId(createdAt, subscriberClientNumber);
   const paths = getCasePaths(rootDir, caseId);
+  const incomeExtraction = adaptCodexExtractToIncomeExtraction({
+    file: paths.ocrPayloadPath,
+    parsedDocument,
+    extract: codexExtraction.extract,
+  });
 
   await mkdir(paths.caseRoot, { recursive: true });
   await writeFile(paths.ocrPayloadPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
@@ -528,7 +655,6 @@ export async function processOcrPayload(
     await saveOcrArtifact(payload, subscriberClientNumber);
   }
 
-  const incomeExtraction = extractIncomeDocument(paths.ocrPayloadPath, parsedDocument);
   const ocrExtraction = incomeExtraction.coupon;
   const extractionGeneratedAt = new Date().toISOString();
   const imageLink = typeof payload.imageLink === "string" ? payload.imageLink : parsedDocument.imageLink;
