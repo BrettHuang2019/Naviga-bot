@@ -1396,6 +1396,7 @@ export async function executeWorkflow(
               ? resolveArtifactPath(runtime.rootDir, runtime.env, step.checkExtractPath)
               : undefined,
             navigaSummaryPath: resolveArtifactPath(runtime.rootDir, runtime.env, step.subscriptionSummaryPath),
+            rootDir: runtime.rootDir,
           });
           const rows = buildRenewalValidationRows(artifacts);
           for (const row of rows) {
@@ -1412,6 +1413,7 @@ export async function executeWorkflow(
               ? resolveArtifactPath(runtime.rootDir, runtime.env, step.checkExtractPath)
               : undefined,
             navigaSummaryPath: resolveArtifactPath(runtime.rootDir, runtime.env, step.subscriptionSummaryPath),
+            rootDir: runtime.rootDir,
           });
           const paymentInput = resolveRenewalPaymentInput(artifacts);
           await completeRenewalCheckPayment(page, runtime.rootDir, paymentInput, {
@@ -1428,6 +1430,7 @@ export async function executeWorkflow(
               ? resolveArtifactPath(runtime.rootDir, runtime.env, step.checkExtractPath)
               : undefined,
             navigaSummaryPath: resolveArtifactPath(runtime.rootDir, runtime.env, step.subscriptionSummaryPath),
+            rootDir: runtime.rootDir,
           });
           const paymentInput = resolveRenewalPaymentInput(artifacts);
           await prepareRenewalCheckPayment(page, runtime.rootDir, paymentInput, {

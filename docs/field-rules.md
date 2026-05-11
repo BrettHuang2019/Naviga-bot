@@ -28,13 +28,8 @@
 1. Input Promo code 
 if Regular - R, if extra - X
 
-2. Input Term (what is the rule for 22+4?)
-create a list.
-PGC - 12/24
-DEB - 10/20
-PASP - 6/12
-CUR - 9/18
-LIT - 6/12
+2. Input Term
+Look up terms in workflow\business-rules\promo-code-terms.json
 
 3. Paid, check
 

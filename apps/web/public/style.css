@@ -68,6 +68,10 @@ body {
 .field-label { color: #6b7280; font-size: 0.75rem; flex-shrink: 0; }
 .field-value { font-weight: 500; text-align: right; word-break: break-word; }
 .field-value.null { color: #94a3b8; font-style: italic; font-weight: normal; }
+.excel-terms-box { margin-top: 0.875rem; padding: 0.7rem 0.75rem; border: 1px solid #bbf7d0; border-radius: 8px; background: #f0fdf4; }
+.excel-terms-title { color: #166534; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 0.25rem; }
+.excel-terms-box .field-row { border-bottom-color: #dcfce7; }
+.excel-terms-box .field-row:last-child { border-bottom: none; }
 
 /* Options */
 .options-list { list-style: none; margin-top: 0.25rem; }
@@ -116,7 +120,7 @@ body {
 .validation-main { min-width: 0; flex: 1; }
 .validation-title { font-weight: 700; font-size: 0.875rem; }
 .validation-message { color: #4b5563; font-size: 0.78rem; margin-top: 0.15rem; }
-.validation-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.625rem; margin-top: 0.625rem; }
+.validation-values { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.625rem; margin-top: 0.625rem; }
 .validation-value { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.45rem 0.5rem; min-width: 0; }
 .validation-value > span:first-child { display: block; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 0.15rem; }
 .validation-value .field-value { display: block; text-align: left; font-size: 0.78rem; overflow-wrap: anywhere; }

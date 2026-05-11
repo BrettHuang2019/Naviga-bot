@@ -5,14 +5,30 @@ import os from "node:os";
 import path from "node:path";
 import { extractOcrJsonWithCodex, type CommandRunner, type ExtractJson } from "./codex-extraction.js";
 
-const rootDir = process.cwd();
-
 test("creates case folder, runs configured Codex command, and returns extracted JSON", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "ocr-extraction-"));
-  const ocrPath = path.join(rootDir, "artifacts", "case_225139", "ocr-2026-05-04T17-42-55.891Z_225139.json");
-  const expectedPath = path.join(rootDir, "artifacts", "case_225139", "extract_225139.json");
-  const ocrJson = JSON.parse(await readFile(ocrPath, "utf8")) as unknown;
-  const expected = JSON.parse(await readFile(expectedPath, "utf8")) as ExtractJson;
+  const ocrJson = { fullText: "Client # 225139\nPromo ABC2600AV2" };
+  const expected: ExtractJson = {
+    check: {
+      checkNumber: "219",
+      date: "2026-03-09",
+      payTo: "Living with Christ",
+      amountNumber: "47.20",
+      amountWords: "Forty-Seven 20/100",
+      payerName: "Lucienne Malo",
+      payerAddress: "101-4805 42 ST, ST. PAUL AB T0A 3A2",
+    },
+    coupon: {
+      clientId: "225139",
+      clientName: "LUCIENNE MALO",
+      promoCode: "ABC2600AV2",
+      optionAmount: "47.20",
+      optionChosen: "1 Year",
+      priceFromChosenOption: "47.20",
+      issuesFromChosenOption: "",
+      regularOrExtra: "regular",
+    },
+  };
   const commands: string[] = [];
 
   const commandRunner: CommandRunner = async (command, options) => {
@@ -44,7 +60,7 @@ test("creates case folder, runs configured Codex command, and returns extracted 
     assert.match(await readFile(path.join(options.cwd, "extract_rules.md"), "utf8"), /checkNumber/);
 
     await writeFile(path.join(options.cwd, "extract.json"), `${JSON.stringify(expected, null, 2)}\n`, "utf8");
-    return { stdout: "", stderr: "" };
+    return { stdout: "extracted", stderr: "diagnostic" };
   };
 
   try {
@@ -59,6 +75,7 @@ test("creates case folder, runs configured Codex command, and returns extracted 
     assert.match(commands[0], /Read the OCR JSON file in the current directory/);
     assert.equal(result.caseDir, path.join(tempDir, "case_225139"));
     assert.deepEqual(result.extract, expected);
+    assert.match(await readFile(result.files.commandLog, "utf8"), /stdout:\nextracted\n\nstderr:\ndiagnostic/);
   } finally {
     await rm(tempDir, { force: true, recursive: true });
   }

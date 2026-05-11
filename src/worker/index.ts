@@ -6,6 +6,7 @@ import { extractOcrJsonWithCodex, type ExtractJson } from "../../packages/ocr-ex
 import {
   type CheckExtraction,
   type CouponExtraction,
+  extractIncomeDocument,
   type IncomeExtraction,
   type ParsedOcrDocument,
   summarizeSubscription,
@@ -27,11 +28,7 @@ import {
 } from "../naviga-workflows/index.js";
 import { saveOcrArtifact } from "../sharepoint/index.js";
 import { toNavigaPromotionLookupCode } from "./promotion-code.js";
-import {
-  resolveSubscriptionTermTime,
-  resolveSubscriptionTermTimeFromFile,
-  type TermTimeCouponSource,
-} from "./subscription-term-time.js";
+import { resolvePromoTermTime, resolvePromoTermTimeFromFile, type PromoTermCouponSource } from "./promo-code-terms.js";
 
 type WorkflowRunStatus = "queued" | "running" | "succeeded" | "failed";
 
@@ -412,12 +409,12 @@ async function runWorkflowForSubscriber(params: {
   workflowId: string;
   subscriberClientNumber: string;
   promoCode?: string | null;
-  couponExtraction?: TermTimeCouponSource | null;
+  couponExtraction?: PromoTermCouponSource | null;
   subscriptionDetailPath: string;
 }): Promise<void> {
   const { rootDir, workflowId, subscriberClientNumber, promoCode, couponExtraction, subscriptionDetailPath } = params;
   const fileEnv = await loadEnv(rootDir);
-  const termTime = couponExtraction ? await resolveSubscriptionTermTime(rootDir, couponExtraction) : null;
+  const termTime = couponExtraction ? await resolvePromoTermTime(rootDir, couponExtraction) : null;
   const env = {
     ...fileEnv,
     NAVIGA_QUERY: subscriberClientNumber,
@@ -496,7 +493,7 @@ async function buildWorkflowEnvWithBatchId(rootDir: string, env: Record<string, 
 export async function runBatchWorkflow(params: {
   subscriberClientNumber: string;
   promoCode?: string | null;
-  couponExtraction?: TermTimeCouponSource | null;
+  couponExtraction?: PromoTermCouponSource | null;
   couponExtractPath?: string | null;
   subscriptionSummaryOutputPath?: string | null;
   pipelinePath?: string | null;
@@ -539,10 +536,10 @@ export async function runBatchWorkflow(params: {
 
       try {
         const termTimeFromExtraction = params.couponExtraction
-          ? await resolveSubscriptionTermTime(rootDir, params.couponExtraction)
+          ? await resolvePromoTermTime(rootDir, params.couponExtraction)
           : null;
         const termTimeFromFile = !termTimeFromExtraction && params.couponExtractPath
-          ? await resolveSubscriptionTermTimeFromFile(rootDir, params.couponExtractPath)
+          ? await resolvePromoTermTimeFromFile(rootDir, params.couponExtractPath)
           : null;
         const termTime = termTimeFromExtraction ?? termTimeFromFile ?? fileEnv.NAVIGA_TERM_TIME ?? null;
         if (!termTime) {
@@ -631,22 +628,36 @@ export async function processOcrPayload(
   const createdAt = new Date();
   const initialCaseId = createCaseId(createdAt);
   const parsedDocument: ParsedOcrDocument = parseOcrPayload(payload);
+  console.log(timestampedMessage(`[ocr-extraction] starting Codex extraction for ${initialCaseId}`));
   const codexExtraction = await extractOcrJsonWithCodex(payload, {
     caseId: initialCaseId,
     casesDir: path.join(rootDir, "artifacts", "codex-cases"),
   });
-  const subscriberClientNumber = stringOrNull(codexExtraction.extract.coupon.clientId);
+  console.log(timestampedMessage(`[ocr-extraction] Codex extraction finished at ${codexExtraction.files.extract}`));
+  const codexSubscriberClientNumber = stringOrNull(codexExtraction.extract.coupon.clientId);
+  const fallbackIncomeExtraction = codexSubscriberClientNumber
+    ? null
+    : extractIncomeDocument(codexExtraction.files.ocr, parsedDocument);
+  if (codexSubscriberClientNumber) {
+    console.log(timestampedMessage(`[ocr-extraction] Codex extracted client ${codexSubscriberClientNumber}`));
+  } else {
+    console.warn(timestampedMessage("[ocr-extraction] Codex output missing client id; using deterministic OCR fallback."));
+  }
+  const subscriberClientNumber =
+    codexSubscriberClientNumber ?? fallbackIncomeExtraction?.coupon.subscriberClientNumber ?? null;
   if (!subscriberClientNumber) {
     throw new Error("Unable to derive the subscriber client number from the OCR payload.");
   }
 
   const caseId = createCaseId(createdAt, subscriberClientNumber);
   const paths = getCasePaths(rootDir, caseId);
-  const incomeExtraction = adaptCodexExtractToIncomeExtraction({
-    file: paths.ocrPayloadPath,
-    parsedDocument,
-    extract: codexExtraction.extract,
-  });
+  const incomeExtraction = codexSubscriberClientNumber
+    ? adaptCodexExtractToIncomeExtraction({
+        file: paths.ocrPayloadPath,
+        parsedDocument,
+        extract: codexExtraction.extract,
+      })
+    : extractIncomeDocument(paths.ocrPayloadPath, parsedDocument);
 
   await mkdir(paths.caseRoot, { recursive: true });
   await writeFile(paths.ocrPayloadPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");

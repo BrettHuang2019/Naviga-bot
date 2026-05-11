@@ -64,6 +64,7 @@ export type RenewalValidationArtifacts = {
   couponExtract: ExtractReport | null;
   navigaSummary: NavigaSubscriptionSummary | null;
   storedCase: StoredCaseLike | null;
+  excelPrice: number | null;
 };
 
 export type RenewalValidationStatus = "ok" | "warning" | "error";
@@ -75,6 +76,7 @@ export type RenewalValidationRow = {
   naviga?: string | number | null;
   coupon?: string | number | null;
   check?: string | number | null;
+  excel?: string | number | null;
 };
 
 export type RenewalPaymentInput = {
@@ -181,6 +183,7 @@ export async function loadRenewalValidationArtifacts(paths: {
   couponExtractPath: string;
   checkExtractPath?: string;
   navigaSummaryPath: string;
+  rootDir: string;
 }): Promise<RenewalValidationArtifacts> {
   const caseDir = path.dirname(paths.couponExtractPath);
   const checkExtractPath = paths.checkExtractPath ?? path.join(caseDir, "check-extract.json");
@@ -193,7 +196,25 @@ export async function loadRenewalValidationArtifacts(paths: {
     readJsonOrNull<StoredCaseLike>(casePath),
   ]);
 
-  return { checkExtract, couponExtract, navigaSummary, storedCase };
+  // Load Excel price from promo code terms
+  let excelPrice: number | null = null;
+  try {
+    const couponPromoCode = extractFieldValue<string>(couponExtract, "promoCode");
+    if (couponPromoCode) {
+      const { resolvePromoTerm } = await import("./promo-code-terms.js");
+      const resolved = await resolvePromoTerm(paths.rootDir, {
+        promoCode: couponPromoCode,
+        selectedOption: extractFieldValue(couponExtract, "selectedOption"),
+        paymentAmount: normalizeAmount(storedCase?.incomeExtraction?.coupon?.paymentAmount),
+        fields: couponExtract?.fields as any,
+      });
+      excelPrice = resolved.price;
+    }
+  } catch {
+    // Excel price is optional - if lookup fails, continue with null
+  }
+
+  return { checkExtract, couponExtract, navigaSummary, storedCase, excelPrice };
 }
 
 export function buildRenewalValidationRows(artifacts: RenewalValidationArtifacts): RenewalValidationRow[] {
@@ -232,8 +253,17 @@ export function buildRenewalValidationRows(artifacts: RenewalValidationArtifacts
   const clientNameAllMatch = allPairwise([navigaName, couponName, checkName], compareNames);
   const clientNumberMatches = toDigits(navigaClientNumber) !== null && toDigits(navigaClientNumber) === toDigits(couponClientNumber);
   const addressAllMatch = allPairwise([navigaAddress, couponAddress, checkAddress], compareAddresses);
+
+  // Price validation: all four sources (Naviga, coupon, check, Excel) must match
+  const allPrices = [navigaPrice, couponPrice, checkPrice, artifacts.excelPrice].filter((p) => p !== null);
   const priceAllMatch =
-    amountsEqual(navigaPrice, couponPrice) && amountsEqual(navigaPrice, checkPrice) && amountsEqual(couponPrice, checkPrice);
+    allPrices.length === 4 && // All four must be present
+    amountsEqual(navigaPrice, couponPrice) &&
+    amountsEqual(navigaPrice, checkPrice) &&
+    amountsEqual(navigaPrice, artifacts.excelPrice) &&
+    amountsEqual(couponPrice, checkPrice) &&
+    amountsEqual(couponPrice, artifacts.excelPrice) &&
+    amountsEqual(checkPrice, artifacts.excelPrice);
   const wordsMatch = amountWordsMatch(checkPrice, checkAmountWords);
 
   return [
@@ -267,10 +297,11 @@ export function buildRenewalValidationRows(artifacts: RenewalValidationArtifacts
     {
       label: "Price",
       status: priceAllMatch ? "ok" : "error",
-      message: priceAllMatch ? "Naviga, coupon, and check prices align." : "Price differs across Naviga, coupon, or check.",
+      message: priceAllMatch ? "Naviga, coupon, check, and Excel prices align." : "Price differs across Naviga, coupon, check, or Excel.",
       naviga: navigaPrice,
       coupon: couponPrice,
       check: checkPrice,
+      excel: artifacts.excelPrice,
     },
     {
       label: "Check price words",
@@ -287,8 +318,18 @@ export function assertRenewalValidationPassed(rows: RenewalValidationRow[]): voi
     return;
   }
 
-  const detail = errors.map((row) => `${row.label}: ${row.message}`).join("; ");
-  throw new Error(`Renewal validation failed. ${detail}`);
+  const details = errors.map((row) => {
+    const values = [
+      row.naviga !== null && row.naviga !== undefined ? `Naviga: ${row.naviga}` : null,
+      row.coupon !== null && row.coupon !== undefined ? `Coupon: ${row.coupon}` : null,
+      row.check !== null && row.check !== undefined ? `Check: ${row.check}` : null,
+      row.excel !== null && row.excel !== undefined ? `Excel: ${row.excel}` : null,
+    ].filter(Boolean);
+
+    return `${row.label}: ${row.message}${values.length > 0 ? ` (${values.join(", ")})` : ""}`;
+  });
+
+  throw new Error(`Renewal validation failed. ${details.join("; ")}`);
 }
 
 export function resolveRenewalPaymentInput(artifacts: RenewalValidationArtifacts): RenewalPaymentInput {

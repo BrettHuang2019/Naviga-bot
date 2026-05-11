@@ -5,10 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { parse, stringify } from "yaml";
 import { loadEnv } from "../../src/config/env.js";
+import { loadAppConfig } from "../../src/naviga-workflows/config.js";
 import { type CheckExtraction, type CouponExtraction, type IncomeExtraction, type OcrPayload } from "../../src/comparison/index.js";
 import { amountsEqual, fuzzyAddressMatch, fuzzyNameMatch, normalizeForCompare, toAmount, toDigits } from "../../src/comparison/normalization.js";
 import { DEFAULT_TEST_PAYLOAD, type JsonRecord, saveOcrArtifact, sendToPowerAutomate } from "../../src/sharepoint/index.js";
 import { processOcrPayload, runBatchWorkflow, type StoredCase } from "../../src/worker/index.js";
+import { resolvePromoTerm, type ResolvedPromoTerm } from "../../src/worker/promo-code-terms.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -303,6 +305,13 @@ function normalizeAmount(value: string | number | null | undefined): number | nu
   return toAmount(value ?? null);
 }
 
+function normalizeIssues(value: string | number | null | undefined): number | null {
+  if (typeof value === "number") return Number.isInteger(value) ? value : null;
+  if (!value) return null;
+  const match = value.trim().match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
 function compareNames(left: string | null, right: string | null): boolean {
   if (!left || !right) return false;
   return normalizeForCompare(left) === normalizeForCompare(right) || fuzzyNameMatch(left, right);
@@ -384,6 +393,7 @@ type ValidationRow = {
   naviga?: string | number | null;
   coupon?: string | number | null;
   check?: string | number | null;
+  excel?: string | number | null;
 };
 
 function validationBadge(status: ValidationStatus): string {
@@ -661,8 +671,35 @@ function formatWorkflowErrorMessage(error: WorkflowRunState["error"] | undefined
   const rawMessage = typeof error.message === "string" && error.message.trim().length > 0
     ? error.message
     : error.stack ?? "";
-  const firstLine = rawMessage.split(/\r?\n/, 1)[0]?.trim() ?? "";
 
+  // Make validation errors user-friendly
+  if (rawMessage.includes("Renewal validation failed")) {
+    // Extract just the validation failures, skip the technical "Error: Renewal validation failed." prefix
+    const failurePart = rawMessage.replace(/^Error:\s*Renewal validation failed\.\s*/u, "").trim();
+    return `Validation failed: ${failurePart}`;
+  }
+
+  // For workflow step failures, show step name and clean error
+  if (rawMessage.includes("failed at step")) {
+    // Extract the meaningful part after "failed at step X/Y: stepName"
+    const stepMatch = rawMessage.match(/failed at step \d+\/\d+: (\w+)/);
+    const stepName = stepMatch ? stepMatch[1] : null;
+
+    // If there's more to the error after the step info, show it
+    const errorDetail = rawMessage.split(": ").slice(1).join(": ").trim();
+
+    if (stepName) {
+      const stepLabel = stepName
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (s) => s.toUpperCase())
+        .trim();
+      return errorDetail ? `${stepLabel}: ${errorDetail}` : `${stepLabel} failed`;
+    }
+    return errorDetail || rawMessage;
+  }
+
+  // Fallback: first line, cleaned up
+  const firstLine = rawMessage.split(/\r?\n/, 1)[0]?.trim() ?? "";
   return firstLine.replace(/^Error:\s*/u, "");
 }
 
@@ -676,7 +713,7 @@ function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
     ? `<div class="validation-row error">
         <div class="validation-main">
           <div class="validation-title">Batch workflow error</div>
-          <div class="validation-message">${esc(batchErrorMessage)}</div>
+          <div class="validation-message" style="white-space: pre-wrap; word-break: break-word;">${esc(batchErrorMessage)}</div>
         </div>
         ${pipelineStageBadge("failed")}
       </div>`
@@ -707,13 +744,14 @@ function pipelineSectionHtml(pipeline: CasePipelineStatus | null): string {
   </section>`;
 }
 
-function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts): ValidationRow[] {
+function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts, excelTerm: ResolvedPromoTerm | null): ValidationRow[] {
   const income = getIncomeExtraction(c);
   const couponOption = extractFieldValue<{ option: string | null; price: string | null }>(artifacts.couponExtract, "selectedOption");
   const navigaName = firstValue(artifacts.navigaSummary?.subscriber?.name, c.subscription?.subscriberName);
   const navigaClientNumber = firstValue(artifacts.navigaSummary?.subscriber?.id, c.subscription?.clientNumber);
   const navigaAddress = firstValue(artifacts.navigaSummary?.deliveryAddress, c.subscription?.billToName);
   const navigaPrice = normalizeAmount(firstValue(artifacts.navigaSummary?.pricingDetails?.total, c.subscription?.totalAmount));
+  const navigaIssues = normalizeIssues(firstValue(artifacts.navigaSummary?.termDetails?.term, c.subscription?.renewalTerm, c.subscription?.term));
 
   const couponName = firstValue(
     extractFieldValue<string>(artifacts.couponExtract, "subscriberName"),
@@ -742,7 +780,15 @@ function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts): Validatio
   const clientNumberMatches = toDigits(navigaClientNumber) !== null && toDigits(navigaClientNumber) === toDigits(couponClientNumber);
   const addressAllMatch = allPairwise([navigaAddress, couponAddress, checkAddress], compareAddresses);
   const priceAllMatch =
-    amountsEqual(navigaPrice, couponPrice) && amountsEqual(navigaPrice, checkPrice) && amountsEqual(couponPrice, checkPrice);
+    navigaPrice !== null &&
+    couponPrice !== null &&
+    checkPrice !== null &&
+    excelTerm?.price !== null &&
+    excelTerm?.price !== undefined &&
+    amountsEqual(navigaPrice, couponPrice) &&
+    amountsEqual(navigaPrice, checkPrice) &&
+    amountsEqual(navigaPrice, excelTerm.price);
+  const issuesMatch = navigaIssues !== null && excelTerm?.issues !== null && excelTerm?.issues !== undefined && navigaIssues === excelTerm.issues;
   const wordsMatch = amountWordsMatch(checkPrice, checkAmountWords);
 
   return [
@@ -776,10 +822,19 @@ function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts): Validatio
     {
       label: "Price",
       status: priceAllMatch ? "ok" : "error",
-      message: priceAllMatch ? "Naviga, coupon, and check prices align." : "Price differs across Naviga, coupon, or check.",
+      message: priceAllMatch ? "Naviga, coupon, check, and Excel prices align." : "Price differs across Naviga, coupon, check, or Excel.",
       naviga: navigaPrice === null ? null : formatCurrency(navigaPrice),
       coupon: couponPrice === null ? null : formatCurrency(couponPrice),
       check: checkPrice === null ? null : formatCurrency(checkPrice),
+      excel: excelTerm?.price === null || excelTerm?.price === undefined ? null : formatCurrency(excelTerm.price),
+    },
+    {
+      label: "Issues",
+      status: issuesMatch ? "ok" : "error",
+      message: issuesMatch ? "Naviga issues match Excel promo terms." : "Naviga issues differ from Excel promo terms.",
+      naviga: navigaIssues,
+      coupon: income.coupon.selectedOption?.issues ?? null,
+      excel: excelTerm?.issues ?? null,
     },
     {
       label: "Check price words",
@@ -796,6 +851,7 @@ function validationSectionHtml(rows: ValidationRow[]): string {
       validationValue("Check", row.check),
       validationValue("Coupon", row.coupon),
       validationValue("Naviga", row.naviga),
+      validationValue("Excel", row.excel),
     ].join("");
 
     return `<div class="validation-row ${row.status}">
@@ -817,14 +873,22 @@ function validationSectionHtml(rows: ValidationRow[]): string {
   </section>`;
 }
 
-function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
+async function resolveCasePromoTerm(rootDir: string, c: StoredCase): Promise<ResolvedPromoTerm | null> {
+  try {
+    return await resolvePromoTerm(rootDir, c.incomeExtraction.coupon);
+  } catch {
+    return null;
+  }
+}
+
+function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts, excelTerm: ResolvedPromoTerm | null): string {
   const income = getIncomeExtraction(c);
   const coupon = income.coupon;
   const promoCode = coupon.promoCode ?? (coupon as CouponExtraction & { offerCode?: string | null }).offerCode ?? null;
   const check = income.check;
   const sub = c.subscription;
   const couponOption = extractFieldValue<{ option: string | null; price: string | null }>(artifacts.couponExtract, "selectedOption");
-  const validationRows = buildValidationRows(c, artifacts);
+  const validationRows = buildValidationRows(c, artifacts, excelTerm);
   const pipelineHtml = pipelineSectionHtml(artifacts.pipeline);
 
   const optionsHtml = coupon.options.length
@@ -864,6 +928,11 @@ function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
         <a href="${esc(artifacts.navigaSummary.url)}" target="_blank" rel="noopener">Open Naviga page ↗</a>
        </div>`
     : "";
+  const excelTermHtml = `<div class="excel-terms-box">
+        <div class="excel-terms-title">Excel promo terms</div>
+        ${fieldRow("Issues", excelTerm?.issues ?? null)}
+        ${fieldRow("Price", excelTerm?.price === null || excelTerm?.price === undefined ? null : formatCurrency(excelTerm.price))}
+      </div>`;
   const couponClientNumber = firstValue(extractFieldValue<string>(artifacts.couponExtract, "subscriberClientNumber"), coupon.subscriberClientNumber);
   const couponSelectedOption = firstValue(couponOption?.option, coupon.selectedOption?.raw);
   const couponPrice = normalizeAmount(firstValue<string | number>(couponOption?.price, coupon.paymentAmount));
@@ -938,6 +1007,7 @@ function caseDetailHtml(c: StoredCase, artifacts: CaseArtifacts): string {
         ${emptyFieldRow("Check date")}
         ${emptyFieldRow("Pay to")}
         ${fieldRow("Captured", navigaCapturedAt)}
+        ${excelTermHtml}
         ${navigaLinkHtml}
       </div>
     </div>`;
@@ -1093,7 +1163,8 @@ function createReviewRouter(rootDir: string): Router {
       return;
     }
     const artifacts = await readCaseArtifacts(casesDir, id);
-    res.send(caseDetailHtml(c, artifacts));
+    const excelTerm = await resolveCasePromoTerm(rootDir, c);
+    res.send(caseDetailHtml(c, artifacts, excelTerm));
   });
 
   return router;
@@ -1122,6 +1193,7 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
       const offerCode =
         (storedCase.ocrExtraction as CouponExtraction & { offerCode?: string | null }).offerCode ?? null;
 
+      const appConfig = await loadAppConfig(rootDir);
       await runBatchWorkflow({
         subscriberClientNumber,
         promoCode: storedCase.ocrExtraction.promoCode ?? offerCode,
@@ -1129,7 +1201,7 @@ function createSharePointRouter(env: SharePointEnv = {}): Router {
         couponExtractPath: storedCase.paths.couponExtract,
         pipelinePath: storedCase.paths.pipeline,
         rootDir,
-        workflowId: "add-subscription-to-batch",
+        workflowId: appConfig.defaultWorkflow,
         keepOpen: false,
       });
     } catch (error: unknown) {

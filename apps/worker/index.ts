@@ -14,9 +14,9 @@ import {
 } from "../../src/naviga-workflows/index.js";
 import { processOcrPayload } from "../../src/worker/index.js";
 import { toNavigaPromotionLookupCode } from "../../src/worker/promotion-code.js";
+import { resolvePromoTermTimeFromFile } from "../../src/worker/promo-code-terms.js";
 import {
   resolveSubscriberClientNumberFromFile,
-  resolveSubscriptionTermTimeFromFile,
 } from "../../src/worker/subscription-term-time.js";
 
 function parseCliEnvOverrides(args: string[]): Record<string, string> {
@@ -137,7 +137,7 @@ async function runWorkflowCli(
   }
   const couponExtractPath = env.NAVIGA_COUPON_EXTRACT_PATH;
   if (couponExtractPath && !env.NAVIGA_TERM_TIME) {
-    env.NAVIGA_TERM_TIME = await resolveSubscriptionTermTimeFromFile(rootDir, couponExtractPath);
+    env.NAVIGA_TERM_TIME = await resolvePromoTermTimeFromFile(rootDir, couponExtractPath);
   }
   if (couponExtractPath) {
     env.NAVIGA_QUERY = await resolveSubscriberClientNumberFromFile(couponExtractPath);

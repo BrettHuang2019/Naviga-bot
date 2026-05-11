@@ -5,6 +5,7 @@ playwright/.auth/
 artifacts/json/
 artifacts/ocr/
 artifacts/cases/
+artifacts/codex-cases/
 artifacts/*.err
 artifacts/*.log
 packages/ocr-extraction/artifacts/
