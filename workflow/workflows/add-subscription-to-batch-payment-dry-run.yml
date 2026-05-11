@@ -1,0 +1,145 @@
+id: add-subscription-to-batch-payment-dry-run
+description: Open an existing batch, start a renewal subscription, fill check payment details, and stop before processing payment.
+dependsOn:
+  - login
+steps:
+  - type: waitForUrl
+    urlExcludes: /login.aspx
+  - type: usePage
+    page: dashboard-page
+  - type: waitFor
+    target: mainMenuRoot
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: enterSingleSubBatchShortcut
+  - type: pause
+    ms: 2000
+  - type: click
+    target: enterSingleSubBatchShortcut
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: /circ/batch/edit
+  - type: usePage
+    page: batch-page
+  - type: waitFor
+    target: batchIdInput
+  - type: pause
+    ms: 2000
+  - type: fill
+    target: batchIdInput
+    value: env:NAVIGA_BATCH_ID
+  - type: pause
+    ms: 2000
+  - type: click
+    target: batchLookupButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: addRenewalsButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: promotionCodeInput
+  - type: pause
+    ms: 2000
+  - type: type
+    target: promotionCodeInput
+    value: env:NAVIGA_PROMO_LOOKUP_CODE
+    delayMs: 150
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: promotionCodeSearchResults
+  - type: clickContainingText
+    target: promotionCodeSearchResults
+    value: env:NAVIGA_PROMO_LOOKUP_CODE
+  - type: pause
+    ms: 2000
+  - type: fill
+    target: termTimeInput
+    value: env:NAVIGA_TERM_TIME
+  - type: pause
+    ms: 2000
+  - type: selectKendoDropDown
+    target: subscriptionTypeDropdown
+    value: Paid
+  - type: pause
+    ms: 2000
+  - type: selectKendoDropDown
+    target: paymentTypeDropdown
+    value: Check
+  - type: pause
+    ms: 2000
+  - type: click
+    target: updateButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: addRenewalsButton
+  - type: click
+    target: addRenewalsButton
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: entry_orders_circ.aspx
+  - type: usePage
+    page: batch-renewal-popup-page
+  - type: waitFor
+    target: searchSubscriberButton
+  - type: pause
+    ms: 2000
+  - type: click
+    target: searchSubscriberButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: searchSubscriberPopupFrame
+  - type: usePage
+    page: renewal-customer-search-popup-page
+  - type: waitFor
+    target: customerSearchInput
+  - type: fill
+    target: customerSearchInput
+    value: env:NAVIGA_QUERY
+  - type: pause
+    ms: 2000
+  - type: click
+    target: customerSearchButton
+  - type: pause
+    ms: 2000
+  - type: waitFor
+    target: searchResultsGrid
+  - type: clickExactText
+    target: searchResultIdLinks
+    value: env:NAVIGA_QUERY
+  - type: pause
+    ms: 2000
+  - type: usePage
+    page: batch-renewal-popup-page
+  - type: waitFor
+    target: addNewSubscriptionButton
+  - type: pause
+    ms: 2000
+  - type: click
+    target: addNewSubscriptionButton
+  - type: pause
+    ms: 2000
+  - type: waitForUrl
+    urlIncludes: NewSubInRenewalBatch=1
+  - type: usePage
+    page: subscription-page
+  - type: waitFor
+    target: subscriptionIdInput
+  - type: pause
+    ms: 2000
+  - type: exportSubscriptionSummary
+    outputPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+  - type: validateRenewalArtifacts
+    couponExtractPath: env:NAVIGA_COUPON_EXTRACT_PATH
+    subscriptionSummaryPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+  - type: prepareRenewalCheckPayment
+    couponExtractPath: env:NAVIGA_COUPON_EXTRACT_PATH
+    subscriptionSummaryPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
+    depositBank: Checks CAD - BPC

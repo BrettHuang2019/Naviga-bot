@@ -128,6 +128,13 @@ const stepSchema = z.discriminatedUnion("type", [
     depositBank: z.string().min(1).default("Checks CAD - BPC"),
     duplicateCheckRetries: z.number().int().nonnegative().default(3),
   }),
+  z.object({
+    type: z.literal("prepareRenewalCheckPayment"),
+    couponExtractPath: z.string().min(1),
+    subscriptionSummaryPath: z.string().min(1),
+    checkExtractPath: z.string().min(1).optional(),
+    depositBank: z.string().min(1).default("Checks CAD - BPC"),
+  }),
 ]);
 
 const appConfigSchema = z.object({

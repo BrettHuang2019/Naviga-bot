@@ -1097,31 +1097,11 @@ async function completeRenewalCheckPayment(
     const checkNumber = `${"0".repeat(attempt)}${input.checkNumber}`;
     console.log(`Payment: attempt ${attempt + 1}/${options.duplicateCheckRetries + 1} checkNumber=${checkNumber}`);
 
-    // Add pause before filling payment details
-    await page.waitForTimeout(500);
-
-    console.log(`Payment: selecting deposit bank "${options.depositBank}"...`);
-    await selectFirstAvailablePaymentDropdown(page, options.depositBank);
-
-    // Pause after selecting deposit bank
-    await page.waitForTimeout(300);
-
-    console.log("Payment: filling check number...");
-    await fillFirstAvailablePaymentField(page, ["#tCheckNo", "#tCheckNo_Input", "input[name='tCheckNo']"], checkNumber, /payment\s*\/\s*check\s*no|check\s*no/i);
-
-    // Pause after filling check number
-    await page.waitForTimeout(300);
-
-    console.log("Payment: filling check amount...");
-    await fillFirstAvailablePaymentField(
-      page,
-      ["#nCheckAmount", "#nCheckAmount_Input", "input[name='nCheckAmount']", "#CheckAmount", "#CheckAmount_Input", "input[name='CheckAmount']"],
-      input.amount,
-      /check\s*amount/i,
-    );
-
-    // Pause after filling amount before clicking submit
-    await page.waitForTimeout(500);
+    await fillRenewalCheckPaymentFields(page, {
+      depositBank: options.depositBank,
+      checkNumber,
+      amount: input.amount,
+    });
 
     console.log("Payment: submitting...");
     await clickPaymentComplete(page);
@@ -1154,6 +1134,51 @@ async function completeRenewalCheckPayment(
 
     console.log(`Check number ${checkNumber} already exists. Retrying with leading zero.`);
   }
+}
+
+async function fillRenewalCheckPaymentFields(
+  page: Page,
+  input: { depositBank: string; checkNumber: string; amount: string },
+): Promise<void> {
+  await page.waitForTimeout(500);
+
+  console.log(`Payment: selecting deposit bank "${input.depositBank}"...`);
+  await selectFirstAvailablePaymentDropdown(page, input.depositBank);
+
+  await page.waitForTimeout(300);
+
+  console.log("Payment: filling check number...");
+  await fillFirstAvailablePaymentField(page, ["#tCheckNo", "#tCheckNo_Input", "input[name='tCheckNo']"], input.checkNumber, /payment\s*\/\s*check\s*no|check\s*no/i);
+
+  await page.waitForTimeout(300);
+
+  console.log("Payment: filling check amount...");
+  await fillFirstAvailablePaymentField(
+    page,
+    ["#nCheckAmount", "#nCheckAmount_Input", "input[name='nCheckAmount']", "#CheckAmount", "#CheckAmount_Input", "input[name='CheckAmount']"],
+    input.amount,
+    /check\s*amount/i,
+  );
+
+  await page.waitForTimeout(500);
+}
+
+async function prepareRenewalCheckPayment(
+  page: Page,
+  rootDir: string,
+  input: { checkNumber: string; amount: string },
+  options: { depositBank: string },
+): Promise<void> {
+  console.log("Payment dry run: opening payment form...");
+  await page.locator("#bApplyPayment, #bApplyPayment_input").first().click();
+  await waitForPaymentForm(page);
+  await exportPaymentDomSnapshot(page, rootDir, "opened-dry-run");
+  await fillRenewalCheckPaymentFields(page, {
+    depositBank: options.depositBank,
+    checkNumber: input.checkNumber,
+    amount: input.amount,
+  });
+  console.log("Payment dry run: stopped before Process Payment Now.");
 }
 
 function resolveWorkflowOrder(
@@ -1284,6 +1309,8 @@ export async function executeWorkflow(
         return `validateRenewalArtifacts couponExtractPath=${describeEnvValue(step.couponExtractPath)} subscriptionSummaryPath=${describeEnvValue(step.subscriptionSummaryPath)}`;
       case "completeRenewalCheckPayment":
         return `completeRenewalCheckPayment couponExtractPath=${describeEnvValue(step.couponExtractPath)} subscriptionSummaryPath=${describeEnvValue(step.subscriptionSummaryPath)} duplicateCheckRetries=${step.duplicateCheckRetries}`;
+      case "prepareRenewalCheckPayment":
+        return `prepareRenewalCheckPayment couponExtractPath=${describeEnvValue(step.couponExtractPath)} subscriptionSummaryPath=${describeEnvValue(step.subscriptionSummaryPath)}`;
       case "click":
         return `click page=${activePageId ?? "<none>"} target=${step.target}`;
       case "clickExactText":
@@ -1390,6 +1417,21 @@ export async function executeWorkflow(
           await completeRenewalCheckPayment(page, runtime.rootDir, paymentInput, {
             depositBank: step.depositBank,
             duplicateCheckRetries: step.duplicateCheckRetries,
+          });
+          continue;
+        }
+
+        if (step.type === "prepareRenewalCheckPayment") {
+          const artifacts = await loadRenewalValidationArtifacts({
+            couponExtractPath: resolveArtifactPath(runtime.rootDir, runtime.env, step.couponExtractPath),
+            checkExtractPath: step.checkExtractPath
+              ? resolveArtifactPath(runtime.rootDir, runtime.env, step.checkExtractPath)
+              : undefined,
+            navigaSummaryPath: resolveArtifactPath(runtime.rootDir, runtime.env, step.subscriptionSummaryPath),
+          });
+          const paymentInput = resolveRenewalPaymentInput(artifacts);
+          await prepareRenewalCheckPayment(page, runtime.rootDir, paymentInput, {
+            depositBank: step.depositBank,
           });
           continue;
         }
