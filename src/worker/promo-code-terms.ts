@@ -3,7 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { CouponExtraction } from "../comparison/index.js";
 import { amountsEqual, toAmount } from "../comparison/normalization.js";
-import { toNavigaPromotionLookupCode } from "./promotion-code.js";
+import { toPromotionLookupCandidates } from "./promotion-code.js";
 
 const promoTermSchema = z.object({
   label: z.string().nullable().optional(),
@@ -106,16 +106,11 @@ function couponSelectedIssues(coupon: PromoTermCouponSource): number | null {
 }
 
 function findPromoEntry(termsFile: PromoCodeTermsFile, promoCode: string) {
-  const rawCode = promoCode.trim().toUpperCase();
-  const rawEntry = termsFile.promoCodes[rawCode];
-  if (rawEntry) {
-    return rawEntry;
-  }
-
-  const lookupCode = toNavigaPromotionLookupCode(rawCode).toUpperCase();
-  const lookupEntry = termsFile.promoCodes[lookupCode];
-  if (lookupEntry) {
-    return lookupEntry;
+  for (const candidate of toPromotionLookupCandidates(promoCode)) {
+    const entry = termsFile.promoCodes[candidate];
+    if (entry) {
+      return entry;
+    }
   }
 
   throw new Error(`Unable to resolve promo term: promo code "${promoCode}" was not found in Excel promo terms.`);

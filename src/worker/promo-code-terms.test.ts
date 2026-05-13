@@ -49,6 +49,21 @@ test("resolves promo term by Naviga lookup code fallback", async () => {
   );
 });
 
+test("resolves promo term when coupon OCR reads AV1 as AVI", async () => {
+  assert.deepEqual(
+    await resolvePromoTerm(rootDir, {
+      promoCode: "PGC2600AVI",
+      selectedOption: {
+        raw: "1 an",
+        years: 1,
+        issues: 12,
+        amount: 44.95,
+      },
+    }),
+    { issues: 12, price: 44.95 },
+  );
+});
+
 test("resolves promo term by selected duration when price is unavailable", async () => {
   assert.equal(
     await resolvePromoTermTime(rootDir, {

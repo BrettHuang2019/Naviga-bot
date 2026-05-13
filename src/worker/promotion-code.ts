@@ -17,3 +17,15 @@ export function toNavigaPromotionLookupCode(promoCode: string): string {
 
   return trimmed;
 }
+
+export function toPromotionLookupCandidates(promoCode: string): string[] {
+  const rawCode = promoCode.trim().toUpperCase();
+  const candidates = [rawCode, toNavigaPromotionLookupCode(rawCode).toUpperCase()];
+  for (const code of [...candidates]) {
+    if (code.endsWith("AVI")) {
+      candidates.push(`${code.slice(0, -1)}1`);
+    }
+  }
+
+  return [...new Set(candidates)];
+}
