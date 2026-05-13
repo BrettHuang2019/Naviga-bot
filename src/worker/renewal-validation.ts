@@ -254,16 +254,13 @@ export function buildRenewalValidationRows(artifacts: RenewalValidationArtifacts
   const clientNumberMatches = toDigits(navigaClientNumber) !== null && toDigits(navigaClientNumber) === toDigits(couponClientNumber);
   const addressAllMatch = allPairwise([navigaAddress, couponAddress, checkAddress], compareAddresses);
 
-  // Price validation: all four sources (Naviga, coupon, check, Excel) must match
-  const allPrices = [navigaPrice, couponPrice, checkPrice, artifacts.excelPrice].filter((p) => p !== null);
   const priceAllMatch =
-    allPrices.length === 4 && // All four must be present
+    navigaPrice !== null &&
+    couponPrice !== null &&
+    checkPrice !== null &&
     amountsEqual(navigaPrice, couponPrice) &&
     amountsEqual(navigaPrice, checkPrice) &&
-    amountsEqual(navigaPrice, artifacts.excelPrice) &&
-    amountsEqual(couponPrice, checkPrice) &&
-    amountsEqual(couponPrice, artifacts.excelPrice) &&
-    amountsEqual(checkPrice, artifacts.excelPrice);
+    amountsEqual(couponPrice, checkPrice);
   const wordsMatch = amountWordsMatch(checkPrice, checkAmountWords);
 
   return [
@@ -297,11 +294,10 @@ export function buildRenewalValidationRows(artifacts: RenewalValidationArtifacts
     {
       label: "Price",
       status: priceAllMatch ? "ok" : "error",
-      message: priceAllMatch ? "Naviga, coupon, check, and Excel prices align." : "Price differs across Naviga, coupon, check, or Excel.",
+      message: priceAllMatch ? "Naviga, coupon, and check prices align." : "Price differs across Naviga, coupon, or check.",
       naviga: navigaPrice,
       coupon: couponPrice,
       check: checkPrice,
-      excel: artifacts.excelPrice,
     },
     {
       label: "Check price words",

@@ -783,11 +783,9 @@ function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts, excelTerm:
     navigaPrice !== null &&
     couponPrice !== null &&
     checkPrice !== null &&
-    excelTerm?.price !== null &&
-    excelTerm?.price !== undefined &&
     amountsEqual(navigaPrice, couponPrice) &&
     amountsEqual(navigaPrice, checkPrice) &&
-    amountsEqual(navigaPrice, excelTerm.price);
+    amountsEqual(couponPrice, checkPrice);
   const issuesMatch = navigaIssues !== null && excelTerm?.issues !== null && excelTerm?.issues !== undefined && navigaIssues === excelTerm.issues;
   const wordsMatch = amountWordsMatch(checkPrice, checkAmountWords);
 
@@ -822,11 +820,10 @@ function buildValidationRows(c: StoredCase, artifacts: CaseArtifacts, excelTerm:
     {
       label: "Price",
       status: priceAllMatch ? "ok" : "error",
-      message: priceAllMatch ? "Naviga, coupon, check, and Excel prices align." : "Price differs across Naviga, coupon, check, or Excel.",
+      message: priceAllMatch ? "Naviga, coupon, and check prices align." : "Price differs across Naviga, coupon, or check.",
       naviga: navigaPrice === null ? null : formatCurrency(navigaPrice),
       coupon: couponPrice === null ? null : formatCurrency(couponPrice),
       check: checkPrice === null ? null : formatCurrency(checkPrice),
-      excel: excelTerm?.price === null || excelTerm?.price === undefined ? null : formatCurrency(excelTerm.price),
     },
     {
       label: "Issues",
