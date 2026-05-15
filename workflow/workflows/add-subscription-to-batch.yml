@@ -143,4 +143,4 @@ steps:
     couponExtractPath: env:NAVIGA_COUPON_EXTRACT_PATH
     subscriptionSummaryPath: env:NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH
     depositBank: Checks CAD - BPC
-    duplicateCheckRetries: 3
+    duplicateCheckRetries: 5
