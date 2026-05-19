@@ -488,15 +488,13 @@ function caseListHtml(args: {
   const rows = args.rows;
   const tableRows = rows.map(({ c, pipeline }) => {
     const status = casePipelineOutcome(pipeline);
-    const score = c.verification?.bestCandidate?.score ?? "—";
     const subscriberName = c.subscription?.subscriberName ?? c.ocrExtraction.subscriberName ?? "—";
-    const productName = c.subscription?.productName ?? c.ocrExtraction.productName ?? "—";
+    const clientNumber = c.subscription?.clientNumber ?? c.subscriberClientNumber ?? c.ocrExtraction.subscriberClientNumber ?? "—";
     return `<tr>
       <td><a href="/cases/${esc(c.id)}">${esc(c.id)}</a></td>
       <td>${esc(new Date(c.createdAt).toLocaleString())}</td>
       <td>${esc(subscriberName)}</td>
-      <td>${esc(productName)}</td>
-      <td>${score}</td>
+      <td>${esc(clientNumber)}</td>
       <td>${statusBadge(status)}</td>
     </tr>`;
   }).join("\n");
@@ -533,7 +531,7 @@ function caseListHtml(args: {
     ${rows.length > 0 ? `<table class="cases-table">
       <thead>
         <tr>
-          <th>Case ID</th><th>Created</th><th>Subscriber</th><th>Product</th><th>Score</th><th>Status</th>
+          <th>Case ID</th><th>Created</th><th>Subscriber</th><th>Client no.</th><th>Status</th>
         </tr>
       </thead>
       <tbody>${tableRows}</tbody>
