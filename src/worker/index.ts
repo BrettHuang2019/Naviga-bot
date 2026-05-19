@@ -419,7 +419,13 @@ async function runWorkflowForSubscriber(params: {
     ...fileEnv,
     NAVIGA_QUERY: subscriberClientNumber,
     ...(promoCode ? { NAVIGA_PROMO_CODE: promoCode } : {}),
-    ...(promoCode ? { NAVIGA_PROMO_LOOKUP_CODE: toNavigaPromotionLookupCode(promoCode) } : {}),
+    ...(promoCode
+      ? {
+          NAVIGA_PROMO_LOOKUP_CODE: toNavigaPromotionLookupCode(promoCode, {
+            selectedOptionText: couponExtraction?.selectedOption?.raw,
+          }),
+        }
+      : {}),
     ...(termTime ? { NAVIGA_TERM_TIME: termTime } : {}),
     NAVIGA_SUBSCRIPTION_OUTPUT_PATH: subscriptionDetailPath,
   };
@@ -555,7 +561,13 @@ export async function runBatchWorkflow(params: {
           ...fileEnv,
           NAVIGA_QUERY: params.subscriberClientNumber,
           ...(params.promoCode ? { NAVIGA_PROMO_CODE: params.promoCode } : {}),
-          ...(params.promoCode ? { NAVIGA_PROMO_LOOKUP_CODE: toNavigaPromotionLookupCode(params.promoCode) } : {}),
+          ...(params.promoCode
+            ? {
+                NAVIGA_PROMO_LOOKUP_CODE: toNavigaPromotionLookupCode(params.promoCode, {
+                  selectedOptionText: params.couponExtraction?.selectedOption?.raw,
+                }),
+              }
+            : {}),
           NAVIGA_TERM_TIME: termTime,
           ...(params.couponExtractPath ? { NAVIGA_COUPON_EXTRACT_PATH: params.couponExtractPath } : {}),
           ...(subscriptionSummaryOutputPath ? { NAVIGA_SUBSCRIPTION_SUMMARY_OUTPUT_PATH: subscriptionSummaryOutputPath } : {}),

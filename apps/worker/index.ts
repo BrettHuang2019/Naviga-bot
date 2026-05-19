@@ -133,7 +133,9 @@ async function runWorkflowCli(
     }
   }
   if (env.NAVIGA_PROMO_CODE && !env.NAVIGA_PROMO_LOOKUP_CODE) {
-    env.NAVIGA_PROMO_LOOKUP_CODE = toNavigaPromotionLookupCode(env.NAVIGA_PROMO_CODE);
+    env.NAVIGA_PROMO_LOOKUP_CODE = toNavigaPromotionLookupCode(env.NAVIGA_PROMO_CODE, {
+      selectedOptionText: env.NAVIGA_SELECTED_OPTION_TEXT,
+    });
   }
   const couponExtractPath = env.NAVIGA_COUPON_EXTRACT_PATH;
   if (couponExtractPath && !env.NAVIGA_TERM_TIME) {

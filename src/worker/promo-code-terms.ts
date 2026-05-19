@@ -100,13 +100,20 @@ function couponSelectedDuration(coupon: PromoTermCouponSource): string | null {
   return rawOption.trim().toLowerCase();
 }
 
+function couponSelectedOptionText(coupon: PromoTermCouponSource): string | null {
+  return (
+    coupon.selectedOption?.raw ??
+    (typeof coupon.fields?.selectedOption?.value?.option === "string" ? coupon.fields.selectedOption.value.option : null)
+  );
+}
+
 function couponSelectedIssues(coupon: PromoTermCouponSource): number | null {
   const issues = coupon.selectedOption?.issues;
   return typeof issues === "number" && Number.isInteger(issues) ? issues : null;
 }
 
-function findPromoEntry(termsFile: PromoCodeTermsFile, promoCode: string) {
-  for (const candidate of toPromotionLookupCandidates(promoCode)) {
+function findPromoEntry(termsFile: PromoCodeTermsFile, promoCode: string, coupon: PromoTermCouponSource) {
+  for (const candidate of toPromotionLookupCandidates(promoCode, { selectedOptionText: couponSelectedOptionText(coupon) })) {
     const entry = termsFile.promoCodes[candidate];
     if (entry) {
       return entry;
@@ -161,7 +168,7 @@ function selectTerm(promoCode: string, terms: PromoCodeTerm[], coupon: PromoTerm
 export async function resolvePromoTerm(rootDir: string, coupon: PromoTermCouponSource): Promise<ResolvedPromoTerm> {
   const promoCode = couponPromoCode(coupon);
   const termsFile = await loadPromoCodeTerms(rootDir);
-  const entry = findPromoEntry(termsFile, promoCode);
+  const entry = findPromoEntry(termsFile, promoCode, coupon);
   const term = selectTerm(promoCode, entry.terms ?? [], coupon);
 
   return {

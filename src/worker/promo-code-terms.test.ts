@@ -49,6 +49,28 @@ test("resolves promo term by Naviga lookup code fallback", async () => {
   );
 });
 
+test("resolves promo term by extra option Naviga lookup code fallback", async () => {
+  const tempRoot = await writeTermsFile({
+    DEBX2600AV3: {
+      code: "DEBX2600AV3",
+      terms: [{ label: "1 year", issues: 12, price: 56.45 }],
+    },
+  });
+
+  assert.deepEqual(
+    await resolvePromoTerm(tempRoot, {
+      promoCode: "DEB2600AV3",
+      selectedOption: {
+        raw: "56,45$ 1 Year tax incl. with PLUS",
+        years: 1,
+        issues: 12,
+        amount: 56.45,
+      },
+    }),
+    { issues: 12, price: 56.45 },
+  );
+});
+
 test("resolves promo term when coupon OCR reads AV1 as AVI", async () => {
   assert.deepEqual(
     await resolvePromoTerm(rootDir, {

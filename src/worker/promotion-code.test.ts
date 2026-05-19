@@ -11,6 +11,28 @@ test("replaces fourth letter with R when promo code has four letters before numb
   assert.equal(toNavigaPromotionLookupCode("PASP2600AV1"), "PASR2600AV1");
 });
 
+test("inserts X as fourth letter when promo code has three letters and option has PLUS", () => {
+  assert.equal(
+    toNavigaPromotionLookupCode("DEB2600AV3", { selectedOptionText: "1 year tax incl. with PLUS" }),
+    "DEBX2600AV3",
+  );
+});
+
+test("replaces fourth letter with X when promo code has four letters and option has EXTRA", () => {
+  assert.equal(
+    toNavigaPromotionLookupCode("PASP2600AV1", { selectedOptionText: "Extra 1 an pour seulement 68,93$" }),
+    "PASX2600AV1",
+  );
+});
+
+test("keeps R when selected option has no extra keyword", () => {
+  assert.equal(toNavigaPromotionLookupCode("DEB2600AV3", { selectedOptionText: "1 year tax incl." }), "DEBR2600AV3");
+});
+
+test("detects extra option keyword case-insensitively", () => {
+  assert.equal(toNavigaPromotionLookupCode("PASP2600AV1", { selectedOptionText: "with plus" }), "PASX2600AV1");
+});
+
 test("leaves promo code unchanged when prefix rule does not apply", () => {
   assert.equal(toNavigaPromotionLookupCode("AB2600AV1"), "AB2600AV1");
   assert.equal(toNavigaPromotionLookupCode("ABCDE2600AV1"), "ABCDE2600AV1");
